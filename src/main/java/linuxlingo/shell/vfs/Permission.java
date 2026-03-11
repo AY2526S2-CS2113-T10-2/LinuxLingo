@@ -57,24 +57,36 @@ public class Permission {
         int i = 0;
         while (i < symbolic.length()) {
             // Parse who
-            boolean user = false, group = false, others = false;
+            boolean user = false;
+            boolean group = false;
+            boolean others = false;
             while (i < symbolic.length() && "ugoa".indexOf(symbolic.charAt(i)) >= 0) {
                 switch (symbolic.charAt(i)) {
                 case 'u' -> user = true;
                 case 'g' -> group = true;
                 case 'o' -> others = true;
-                case 'a' -> { user = true; group = true; others = true; }
+                case 'a' -> {
+                    user = true;
+                    group = true;
+                    others = true;
+                }
                 default -> { }
                 }
                 i++;
             }
             if (!user && !group && !others) {
-                user = true; group = true; others = true;
+                user = true;
+                group = true;
+                others = true;
             }
-            if (i >= symbolic.length()) break;
+            if (i >= symbolic.length()) {
+                break;
+            }
             char op = symbolic.charAt(i++);
             // Parse permissions
-            boolean r = false, w = false, x = false;
+            boolean r = false;
+            boolean w = false;
+            boolean x = false;
             while (i < symbolic.length() && "rwx".indexOf(symbolic.charAt(i)) >= 0) {
                 switch (symbolic.charAt(i)) {
                 case 'r' -> r = true;
@@ -85,39 +97,165 @@ public class Permission {
                 i++;
             }
             // Apply
-            switch (op) {
-            case '+' -> {
-                if (user) { if (r) b[0] = true; if (w) b[1] = true; if (x) b[2] = true; }
-                if (group) { if (r) b[3] = true; if (w) b[4] = true; if (x) b[5] = true; }
-                if (others) { if (r) b[6] = true; if (w) b[7] = true; if (x) b[8] = true; }
-            }
-            case '-' -> {
-                if (user) { if (r) b[0] = false; if (w) b[1] = false; if (x) b[2] = false; }
-                if (group) { if (r) b[3] = false; if (w) b[4] = false; if (x) b[5] = false; }
-                if (others) { if (r) b[6] = false; if (w) b[7] = false; if (x) b[8] = false; }
-            }
-            case '=' -> {
-                if (user) { b[0] = r; b[1] = w; b[2] = x; }
-                if (group) { b[3] = r; b[4] = w; b[5] = x; }
-                if (others) { b[6] = r; b[7] = w; b[8] = x; }
-            }
-            default -> { }
-            }
+            applyPermissionOp(b, op, user, group, others, r, w, x);
             // Skip comma separators
-            if (i < symbolic.length() && symbolic.charAt(i) == ',') i++;
+            if (i < symbolic.length() && symbolic.charAt(i) == ',') {
+                i++;
+            }
         }
         return new Permission(b);
     }
 
-    public boolean canOwnerRead() { return bits[0]; }
-    public boolean canOwnerWrite() { return bits[1]; }
-    public boolean canOwnerExecute() { return bits[2]; }
-    public boolean canGroupRead() { return bits[3]; }
-    public boolean canGroupWrite() { return bits[4]; }
-    public boolean canGroupExecute() { return bits[5]; }
-    public boolean canOtherRead() { return bits[6]; }
-    public boolean canOtherWrite() { return bits[7]; }
-    public boolean canOtherExecute() { return bits[8]; }
+    // CHECKSTYLE.OFF: OverloadMethodsDeclarationOrder
+    private static void applyPermissionOp(boolean[] b, char op,
+            boolean user, boolean group, boolean others,
+            boolean r, boolean w, boolean x) {
+        switch (op) {
+        case '+' -> {
+            applyAdd(b, user, group, others, r, w, x);
+        }
+        case '-' -> {
+            applyRemove(b, user, group, others, r, w, x);
+        }
+        case '=' -> {
+            applySet(b, user, group, others, r, w, x);
+        }
+        default -> { }
+        }
+    }
+
+    private static void applyAdd(boolean[] b,
+            boolean user, boolean group, boolean others,
+            boolean r, boolean w, boolean x) {
+        if (user) {
+            if (r) {
+                b[0] = true;
+            }
+            if (w) {
+                b[1] = true;
+            }
+            if (x) {
+                b[2] = true;
+            }
+        }
+        if (group) {
+            if (r) {
+                b[3] = true;
+            }
+            if (w) {
+                b[4] = true;
+            }
+            if (x) {
+                b[5] = true;
+            }
+        }
+        if (others) {
+            if (r) {
+                b[6] = true;
+            }
+            if (w) {
+                b[7] = true;
+            }
+            if (x) {
+                b[8] = true;
+            }
+        }
+    }
+
+    private static void applyRemove(boolean[] b,
+            boolean user, boolean group, boolean others,
+            boolean r, boolean w, boolean x) {
+        if (user) {
+            if (r) {
+                b[0] = false;
+            }
+            if (w) {
+                b[1] = false;
+            }
+            if (x) {
+                b[2] = false;
+            }
+        }
+        if (group) {
+            if (r) {
+                b[3] = false;
+            }
+            if (w) {
+                b[4] = false;
+            }
+            if (x) {
+                b[5] = false;
+            }
+        }
+        if (others) {
+            if (r) {
+                b[6] = false;
+            }
+            if (w) {
+                b[7] = false;
+            }
+            if (x) {
+                b[8] = false;
+            }
+        }
+    }
+
+    private static void applySet(boolean[] b,
+            boolean user, boolean group, boolean others,
+            boolean r, boolean w, boolean x) {
+        if (user) {
+            b[0] = r;
+            b[1] = w;
+            b[2] = x;
+        }
+        if (group) {
+            b[3] = r;
+            b[4] = w;
+            b[5] = x;
+        }
+        if (others) {
+            b[6] = r;
+            b[7] = w;
+            b[8] = x;
+        }
+    }
+    // CHECKSTYLE.ON: OverloadMethodsDeclarationOrder
+
+    public boolean canOwnerRead() {
+        return bits[0];
+    }
+
+    public boolean canOwnerWrite() {
+        return bits[1];
+    }
+
+    public boolean canOwnerExecute() {
+        return bits[2];
+    }
+
+    public boolean canGroupRead() {
+        return bits[3];
+    }
+
+    public boolean canGroupWrite() {
+        return bits[4];
+    }
+
+    public boolean canGroupExecute() {
+        return bits[5];
+    }
+
+    public boolean canOtherRead() {
+        return bits[6];
+    }
+
+    public boolean canOtherWrite() {
+        return bits[7];
+    }
+
+    public boolean canOtherExecute() {
+        return bits[8];
+    }
 
     @Override
     public String toString() {

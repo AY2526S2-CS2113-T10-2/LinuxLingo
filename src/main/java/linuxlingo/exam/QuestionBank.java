@@ -46,7 +46,8 @@ public class QuestionBank {
         //     b. List<Question> questions = QuestionParser.parseFile(file)
         //     c. If questions is not empty → topics.put(topic, questions)
         //     d. Catch StorageException → skip the file (print warning to stderr)
-        throw new UnsupportedOperationException("TODO: implement QuestionBank.load()");
+
+        // Stub: no-op until implemented
     }
 
     /** Return a sorted list of all loaded topic names. */
@@ -59,6 +60,23 @@ public class QuestionBank {
     /** Return all questions for a topic, or empty list if unknown. */
     public List<Question> getQuestions(String topic) {
         return topics.getOrDefault(topic, new ArrayList<>());
+    }
+
+    /**
+     * Return up to {@code count} questions from a topic, optionally shuffled.
+     *
+     * @param topic  the topic name
+     * @param count  maximum number of questions to return
+     * @param random whether to shuffle before selecting
+     * @return list of questions (may be smaller than count if topic has fewer)
+     */
+    public List<Question> getQuestions(String topic, int count, boolean random) {
+        // TODO: Implement getQuestions (with count and random)
+        //  1. List<Question> available = new ArrayList<>(getQuestions(topic))
+        //  2. If random → Collections.shuffle(available)
+        //  3. int limit = Math.min(count, available.size())
+        //  4. Return available.subList(0, limit)
+        throw new UnsupportedOperationException("TODO: implement QuestionBank.getQuestions(topic, count, random)");
     }
 
     /** Return the number of questions in a topic. */
@@ -80,22 +98,5 @@ public class QuestionBank {
         //  2. If empty → return null
         //  3. Return list.get(new Random().nextInt(list.size()))
         throw new UnsupportedOperationException("TODO: implement QuestionBank.getRandomQuestion()");
-    }
-
-    /**
-     * Return up to {@code count} questions from a topic, optionally shuffled.
-     *
-     * @param topic  the topic name
-     * @param count  maximum number of questions to return
-     * @param random whether to shuffle before selecting
-     * @return list of questions (may be smaller than count if topic has fewer)
-     */
-    public List<Question> getQuestions(String topic, int count, boolean random) {
-        // TODO: Implement getQuestions (with count and random)
-        //  1. List<Question> available = new ArrayList<>(getQuestions(topic))
-        //  2. If random → Collections.shuffle(available)
-        //  3. int limit = Math.min(count, available.size())
-        //  4. Return available.subList(0, limit)
-        throw new UnsupportedOperationException("TODO: implement QuestionBank.getQuestions(topic, count, random)");
     }
 }

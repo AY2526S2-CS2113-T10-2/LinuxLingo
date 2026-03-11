@@ -85,7 +85,9 @@ public class LinuxLingo {
 
         StringBuilder sb = new StringBuilder();
         for (int i = cmdStart; i < args.length; i++) {
-            if (i > cmdStart) sb.append(" ");
+            if (i > cmdStart) {
+                sb.append(" ");
+            }
             sb.append(args[i]);
         }
 

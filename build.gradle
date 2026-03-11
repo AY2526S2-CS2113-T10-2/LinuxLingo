@@ -30,11 +30,11 @@ test {
 }
 
 application {
-    mainClass.set("seedu.duke.Duke")
+    mainClass.set("linuxlingo.LinuxLingo")
 }
 
 shadowJar {
-    archiveBaseName.set("duke")
+    archiveBaseName.set("LinuxLingo")
     archiveClassifier.set("")
 }
 

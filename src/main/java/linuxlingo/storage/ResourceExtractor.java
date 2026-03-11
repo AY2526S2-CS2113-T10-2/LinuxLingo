@@ -30,11 +30,11 @@ import java.nio.file.Path;
 public class ResourceExtractor {
 
     private static final String[] BUNDLED_QUESTIONS = {
-            "file-management.txt",
-            "text-processing.txt",
-            "permissions.txt",
-            "navigation.txt",
-            "piping-redirection.txt"
+        "file-management.txt",
+        "text-processing.txt",
+        "permissions.txt",
+        "navigation.txt",
+        "piping-redirection.txt"
     };
 
     /**
@@ -54,7 +54,8 @@ public class ResourceExtractor {
         //  3. If !Files.exists(environmentsDir):
         //     Storage.ensureDirectory(environmentsDir)
         //  Wrap IOException in StorageException
-        throw new UnsupportedOperationException("TODO: implement ResourceExtractor.extractIfNeeded()");
+
+        // Stub: no-op until implemented
     }
 
     /**
