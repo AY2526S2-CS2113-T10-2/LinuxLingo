@@ -1,0 +1,20 @@
+# LinuxLingo Question Bank — File Management
+#
+# Format: TYPE | DIFFICULTY | QUESTION | ANSWER | OPTIONS | EXPLANATION
+
+MCQ  | EASY   | Which command lists directory contents? | B | A:rm B:ls C:cd D:mv | 'ls' stands for 'list'. It displays the files and directories in the current or specified directory.
+MCQ  | EASY   | Which command creates a new empty file? | A | A:touch B:mkdir C:cat D:rm | 'touch' creates a new empty file or updates the timestamp of an existing file.
+MCQ  | EASY   | Which command removes a file? | C | A:mv B:cp C:rm D:ls | 'rm' stands for 'remove'. Use 'rm -r' for directories.
+MCQ  | EASY   | Which command creates a new directory? | D | A:touch B:rm C:ls D:mkdir | 'mkdir' stands for 'make directory'.
+MCQ  | EASY   | Which command copies files? | B | A:mv B:cp C:rm D:cat | 'cp' stands for 'copy'. Use 'cp -r' for directories.
+MCQ  | MEDIUM | What does 'ls -a' show that 'ls' does not? | A | A:Hidden files (starting with .) B:File sizes C:File permissions D:File dates | Files starting with '.' are hidden by default. '-a' shows all files including hidden ones.
+MCQ  | MEDIUM | What does 'rm -r' do? | B | A:Remove read-only files B:Remove directories recursively C:Remove files by regex D:Restore removed files | '-r' means recursive, which removes a directory and all its contents.
+MCQ  | MEDIUM | What does 'cp -r src dest' do? | A | A:Copy directory recursively B:Copy with rename C:Copy read-only files D:Copy in reverse order | '-r' means recursive, copying the entire directory tree.
+FITB | EASY   | To create a directory named 'docs': ___ docs | mkdir | | mkdir creates a new directory.
+FITB | EASY   | To create an empty file named 'notes.txt': ___ notes.txt | touch | | touch creates an empty file.
+FITB | MEDIUM | To copy file.txt to /tmp/: ___ file.txt /tmp/ | cp | | cp copies files from source to destination.
+FITB | MEDIUM | To move file.txt to /home/: ___ file.txt /home/ | mv | | mv moves or renames files and directories.
+FITB | MEDIUM | To remove a directory 'old' and all its contents: rm ___ old | -r|-rf | | -r flag enables recursive removal of directories.
+PRAC | EASY   | Create a directory named 'project' under /home. | /home/project:DIR | | Use 'mkdir /home/project'.
+PRAC | MEDIUM | Create /home/project/ with a file main.c inside it. | /home/project:DIR,/home/project/main.c:FILE | | Use mkdir and touch.
+PRAC | HARD   | Create the directory structure /home/user/src/main/java/ (use mkdir -p). | /home/user/src:DIR,/home/user/src/main:DIR,/home/user/src/main/java:DIR | | Use 'mkdir -p /home/user/src/main/java' to create nested directories.

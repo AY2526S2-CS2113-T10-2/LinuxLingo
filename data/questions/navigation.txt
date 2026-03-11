@@ -1,0 +1,14 @@
+# LinuxLingo Question Bank — Navigation
+#
+# Format: TYPE | DIFFICULTY | QUESTION | ANSWER | OPTIONS | EXPLANATION
+
+MCQ  | EASY   | Which command prints the current working directory? | B | A:cd B:pwd C:ls D:dir | 'pwd' stands for 'print working directory'.
+MCQ  | EASY   | What does 'cd ..' do? | A | A:Go to parent directory B:Go to home directory C:Go to root D:Show current directory | '..' refers to the parent directory.
+MCQ  | EASY   | What does 'cd ~' do? | C | A:Go to root B:Go to parent C:Go to home directory D:Go to tmp | '~' is a shortcut for the home directory.
+MCQ  | MEDIUM | What is the difference between absolute and relative paths? | A | A:Absolute starts with /, relative does not B:Absolute is longer C:Relative starts with / D:There is no difference | Absolute paths start from the root (/), relative paths start from the current directory.
+MCQ  | MEDIUM | Which command finds files by name? | B | A:grep B:find C:ls D:cat | 'find' searches the directory tree for files matching criteria.
+FITB | EASY   | To print the current directory: ___ | pwd | | pwd prints the current working directory.
+FITB | EASY   | To go to the home directory: cd ___ | ~|/home/user | | ~ is a shortcut for the home directory.
+FITB | MEDIUM | To find all .txt files under /home: find /home -name "___" | *.txt | | -name accepts glob patterns where * matches any characters.
+FITB | MEDIUM | To go back to the previous directory: cd ___ | - | | 'cd -' switches to the previous working directory.
+PRAC | EASY   | Navigate to /etc and verify that hostname file exists by using ls. | /etc:DIR | | Use 'cd /etc' then 'ls' to see the hostname file.

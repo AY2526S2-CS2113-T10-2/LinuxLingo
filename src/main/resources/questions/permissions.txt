@@ -1,0 +1,14 @@
+# LinuxLingo Question Bank — Permissions
+#
+# Format: TYPE | DIFFICULTY | QUESTION | ANSWER | OPTIONS | EXPLANATION
+
+MCQ  | EASY   | Which command changes file permissions? | C | A:chown B:chgrp C:chmod D:chmod | 'chmod' stands for 'change mode'.
+MCQ  | EASY   | In 'rwxr-xr--', what does 'r' stand for? | A | A:Read B:Run C:Remove D:Rename | 'r' means read permission.
+MCQ  | MEDIUM | What octal value represents 'rwx'? | D | A:4 B:5 C:6 D:7 | r=4, w=2, x=1, so rwx = 4+2+1 = 7.
+MCQ  | MEDIUM | What does permission '644' mean? | B | A:rwxrw-r-- B:rw-r--r-- C:rw-rw-r-- D:r--r--r-- | 6=rw-, 4=r--, 4=r--. Owner can read/write, others can only read.
+MCQ  | MEDIUM | What does 'chmod u+x file' do? | A | A:Add execute permission for owner B:Add execute for all C:Remove execute for owner D:Add write for owner | 'u' = user/owner, '+' = add, 'x' = execute.
+MCQ  | HARD   | What permission string does '755' represent? | C | A:rwxr--r-- B:rwxrw-r-- C:rwxr-xr-x D:rwxrwxrwx | 7=rwx, 5=r-x, 5=r-x.
+FITB | EASY   | To make file.txt readable, writable, and executable by owner (octal): chmod ___ file.txt | 700|755|777 | | 7 = rwx for the owner digit.
+FITB | MEDIUM | To add execute permission for the owner: chmod ___ file.txt | u+x | | u+x adds execute permission for the user/owner.
+FITB | MEDIUM | To remove write permission from group and others: chmod ___ file.txt | go-w | | g=group, o=others, -w removes write.
+FITB | HARD   | What octal permission represents 'rw-r--r--'? | 644 | | r=4, w=2. Owner: 4+2=6, Group: 4, Others: 4.

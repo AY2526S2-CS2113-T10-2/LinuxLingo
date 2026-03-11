@@ -1,0 +1,16 @@
+# LinuxLingo Question Bank — Text Processing
+#
+# Format: TYPE | DIFFICULTY | QUESTION | ANSWER | OPTIONS | EXPLANATION
+
+MCQ  | EASY   | Which command displays file contents? | A | A:cat B:ls C:cd D:rm | 'cat' concatenates and displays file contents.
+MCQ  | EASY   | Which command displays the first lines of a file? | B | A:tail B:head C:cat D:wc | 'head' shows the first N lines (default 10).
+MCQ  | EASY   | Which command displays the last lines of a file? | C | A:head B:cat C:tail D:grep | 'tail' shows the last N lines (default 10).
+MCQ  | MEDIUM | Which command searches for a pattern in a file? | A | A:grep B:find C:sort D:cat | 'grep' searches for text patterns in files.
+MCQ  | MEDIUM | What does 'wc -l' count? | B | A:Words B:Lines C:Characters D:Files | '-l' flag counts lines. Use '-w' for words and '-c' for characters.
+MCQ  | MEDIUM | What does 'sort -r' do? | D | A:Sort randomly B:Sort recursively C:Sort by regex D:Sort in reverse order | '-r' reverses the sort order.
+MCQ  | MEDIUM | What does 'uniq' do? | A | A:Remove adjacent duplicate lines B:Find unique files C:Count unique words D:Sort uniquely | 'uniq' removes adjacent duplicate lines. Pipe through 'sort' first to remove all duplicates.
+FITB | EASY   | To display the contents of file.txt: ___ file.txt | cat | | cat reads and outputs file contents.
+FITB | EASY   | To show the first 5 lines of data.txt: head ___ 5 data.txt | -n | | -n flag specifies the number of lines.
+FITB | MEDIUM | To count the number of lines in file.txt: wc ___ file.txt | -l | | -l flag counts lines.
+FITB | MEDIUM | To search for 'hello' in file.txt ignoring case: grep ___ hello file.txt | -i | | -i flag makes grep case-insensitive.
+FITB | HARD   | To sort file.txt numerically: sort ___ file.txt | -n | | -n flag enables numeric sorting.

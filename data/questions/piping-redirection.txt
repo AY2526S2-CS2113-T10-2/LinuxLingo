@@ -1,0 +1,16 @@
+# LinuxLingo Question Bank — Piping and Redirection
+#
+# Format: TYPE | DIFFICULTY | QUESTION | ANSWER | OPTIONS | EXPLANATION
+
+MCQ  | EASY   | What does the '>' operator do? | A | A:Redirect output to file (overwrite) B:Redirect output to file (append) C:Pipe output to another command D:Read input from file | '>' redirects stdout to a file, overwriting its contents.
+MCQ  | EASY   | What does '>>' do differently from '>'? | B | A:Overwrites the file B:Appends to the file C:Creates a backup D:Reads from the file | '>>' appends to the file instead of overwriting.
+MCQ  | MEDIUM | What does the pipe '|' operator do? | C | A:Write to file B:Read from file C:Pass output of one command as input to another D:Run commands in parallel | Pipe connects stdout of one command to stdin of the next.
+MCQ  | MEDIUM | What does '&&' do between two commands? | A | A:Run second only if first succeeds B:Run both in parallel C:Run second regardless D:Pipe output between them | '&&' is logical AND: the right command only runs if the left returns exit code 0.
+MCQ  | MEDIUM | What does 'grep hello file.txt | wc -l' do? | B | A:Count words containing hello B:Count lines containing hello C:Find hello and count characters D:Display hello lines | grep finds matching lines, then wc -l counts those lines.
+MCQ  | HARD   | What is the output of 'echo "hello world" | wc -w'? | A | A:2 B:1 C:11 D:hello world | wc -w counts words. 'hello world' has 2 words.
+FITB | EASY   | To write 'hello' to file.txt (overwrite): echo hello ___ file.txt | > | | > redirects stdout to a file.
+FITB | EASY   | To append 'world' to file.txt: echo world ___ file.txt | >> | | >> appends to a file instead of overwriting.
+FITB | MEDIUM | To count lines in the output of ls: ls ___ wc -l | \\| | | The pipe operator passes output between commands. (Enter: |)
+FITB | MEDIUM | To find .txt files and count them: find / -name "*.txt" ___ wc -l | \\| | | Pipe the find output through wc -l to count results. (Enter: |)
+PRAC | MEDIUM | Create a file /home/user/greeting.txt containing 'Hello, Linux!' using echo and redirection. | /home/user/greeting.txt:FILE | | Use 'echo Hello, Linux! > /home/user/greeting.txt'.
+PRAC | HARD   | Create two files /tmp/a.txt and /tmp/b.txt, then use cat to combine them into /tmp/combined.txt. | /tmp/a.txt:FILE,/tmp/b.txt:FILE,/tmp/combined.txt:FILE | | Use touch, then echo content into each, then 'cat /tmp/a.txt /tmp/b.txt > /tmp/combined.txt'.
