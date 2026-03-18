@@ -131,7 +131,10 @@ public class VfsSerializer {
                 continue;
             }
 
-            String[] parts = line.split(" \\| ", 4);
+            // Re-add trailing space so split works when content is empty
+            // (trim() removes the trailing space from "... | rwxr-xr-x | ")
+            String splitLine = line.endsWith("|") ? line + " " : line;
+            String[] parts = splitLine.split(" \\| ", 4);
             if (parts.length < 3) {
                 continue;
             }
