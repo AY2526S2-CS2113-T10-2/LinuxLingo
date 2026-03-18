@@ -9,7 +9,7 @@ import linuxlingo.shell.vfs.VfsException;
 
 /**
  * Searches for a pattern in a file.
- * Syntax: grep [-i] [-n] [-c] &lt;pattern&gt; &lt;file&gt;
+ * Syntax: grep [-i] [-v] [-n] [-c] &lt;pattern&gt; &lt;file&gt;
  *
  * <p><b>Owner: C</b></p>
  */
@@ -19,6 +19,7 @@ public class GrepCommand implements Command {
         boolean ignoreCase = false;
         boolean showLineNumbers = false;
         boolean countOnly = false;
+        boolean invertMatch = false;
 
         String pattern = null;
         String file = null;
@@ -30,6 +31,8 @@ public class GrepCommand implements Command {
                 showLineNumbers = true;
             } else if (arg.equals("-c")) {
                 countOnly = true;
+            } else if (arg.equals("-v")) {
+                invertMatch = true;
             } else if (!arg.startsWith("-")) {
                 if (pattern == null) {
                     pattern = arg;
@@ -53,7 +56,7 @@ public class GrepCommand implements Command {
                 return CommandResult.error("grep: " + e.getMessage());
             }
         } else if (stdin != null) {
-            return CommandResult.success(stdin);
+            content = stdin;
         } else {
             return CommandResult.error("grep: missing file operand");
         }
@@ -73,6 +76,9 @@ public class GrepCommand implements Command {
             String searchLine = ignoreCase ? line.toLowerCase() : line;
 
             boolean matches = searchLine.contains(searchPattern);
+            if (invertMatch) {
+                matches = !matches;
+            }
             if (matches) {
                 count++;
                 if (countOnly) {
@@ -100,7 +106,7 @@ public class GrepCommand implements Command {
 
     @Override
     public String getUsage() {
-        return "grep [-i] [-n] [-c] <pattern> <file>";
+        return "grep [-i] [-v] [-n] [-c] <pattern> <file>";
     }
 
     @Override
