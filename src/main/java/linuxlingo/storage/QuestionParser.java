@@ -142,13 +142,18 @@ public class QuestionParser {
      *
      * <p>The answer field may contain multiple accepted answers separated by
      * {@code |}. For example: {@code "pwd|PWD"}.</p>
+     *
+     * <p>Escaped pipes ({@code \|}) are treated as literal pipe characters in
+     * the accepted answer (e.g. {@code "\\|"} → accepted answer is {@code "|"}).</p>
      */
     private static FitbQuestion parseFitb(String questionText, String answer,
                                           String explanation, Question.Difficulty difficulty) {
-        String[] answers = answer.split("\\|");
+        // Split by unescaped pipe: use negative lookbehind so \| is not treated as separator
+        String[] answers = answer.split("(?<!\\\\)\\|");
         List<String> accepted = new ArrayList<>();
         for (String acceptedAnswer : answers) {
-            String trimmedAnswer = acceptedAnswer.trim();
+            // Unescape \| to literal |
+            String trimmedAnswer = acceptedAnswer.trim().replace("\\|", "|");
             if (!trimmedAnswer.isEmpty()) {
                 accepted.add(trimmedAnswer);
             }
