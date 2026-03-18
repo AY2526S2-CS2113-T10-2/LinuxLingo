@@ -3,7 +3,6 @@ package linuxlingo.shell.command;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -68,5 +67,49 @@ public class GrepCommandTest {
 
         assertFalse(result.isSuccess());
         assertEquals("", result.getStderr());
+    }
+
+    @Test
+    public void grepCommand_invertMatchFlag_returnsNonMatchingLines() {
+        String[] args = {"-v", "apple", "data.txt"};
+        CommandResult result = command.execute(session, args, null);
+
+        assertTrue(result.isSuccess());
+        assertEquals("Banana\nmango\nApple juice", result.getStdout());
+    }
+
+    @Test
+    public void grepCommand_invertMatchWithIgnoreCase_returnsNonMatchingLines() {
+        String[] args = {"-v", "-i", "apple", "data.txt"};
+        CommandResult result = command.execute(session, args, null);
+
+        assertTrue(result.isSuccess());
+        assertEquals("Banana\nmango", result.getStdout());
+    }
+
+    @Test
+    public void grepCommand_stdinFiltering_filtersCorrectly() {
+        String[] args = {"apple"};
+        CommandResult result = command.execute(session, args, "apple\nbanana\napple juice");
+
+        assertTrue(result.isSuccess());
+        assertEquals("apple\napple juice", result.getStdout());
+    }
+
+    @Test
+    public void grepCommand_stdinWithCountFlag_returnsCount() {
+        String[] args = {"-c", "apple"};
+        CommandResult result = command.execute(session, args, "apple\nbanana\napple juice");
+
+        assertTrue(result.isSuccess());
+        assertEquals("2", result.getStdout());
+    }
+
+    @Test
+    public void grepCommand_noArgs_returnsUsage() {
+        String[] args = {};
+        CommandResult result = command.execute(session, args, null);
+
+        assertFalse(result.isSuccess());
     }
 }
