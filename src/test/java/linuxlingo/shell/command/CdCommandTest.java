@@ -57,7 +57,7 @@ public class CdCommandTest {
     }
 
     @Test
-    public void cd_dash_noPrevious_returnsError() {
+    public void cd_dashNoPrevious_returnsError() {
         CommandResult result = command.execute(session, new String[]{"-"}, null);
         assertFalse(result.isSuccess());
         assertTrue(result.getStderr().contains("OLDPWD not set"));
