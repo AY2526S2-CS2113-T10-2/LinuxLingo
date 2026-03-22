@@ -1,6 +1,8 @@
 package linuxlingo.exam;
 
 import linuxlingo.shell.vfs.FileNode;
+import linuxlingo.shell.vfs.Permission;
+import linuxlingo.shell.vfs.RegularFile;
 import linuxlingo.shell.vfs.VfsException;
 import linuxlingo.shell.vfs.VirtualFileSystem;
 
@@ -17,15 +19,23 @@ public class Checkpoint {
 
     /** The expected node type at the checkpoint path. */
     public enum NodeType {
-        DIR, FILE
+        DIR, FILE, NOT_EXISTS, CONTENT_EQUALS, PERM
     }
 
     private final String path;
     private final NodeType expectedType;
+    private final String expectedContent;
+    private final String expectedPermission;
 
     public Checkpoint(String path, NodeType expectedType) {
+        this(path, expectedType, null, null);
+    }
+
+    public Checkpoint(String path, NodeType expectedType, String expectedContent, String expectedPermission) {
         this.path = path;
         this.expectedType = expectedType;
+        this.expectedContent = expectedContent;
+        this.expectedPermission = expectedPermission;
     }
 
     public String getPath() {
@@ -36,6 +46,14 @@ public class Checkpoint {
         return expectedType;
     }
 
+    public String getExpectedContent() {
+        return expectedContent;
+    }
+
+    public String getExpectedPermission() {
+        return expectedPermission;
+    }
+
     /**
      * Check whether this checkpoint is satisfied in the given VFS.
      *
@@ -43,6 +61,22 @@ public class Checkpoint {
      * @return true if the path exists and is the expected type
      */
     public boolean matches(VirtualFileSystem vfs) {
+        switch (expectedType) {
+        case DIR:
+        case FILE:
+            return matchesDirOrFile(vfs);
+        case NOT_EXISTS:
+            return matchesNotExists(vfs);
+        case CONTENT_EQUALS:
+            return matchesContentEquals(vfs);
+        case PERM:
+            return matchesPerm(vfs);
+        default:
+            return false;
+        }
+    }
+
+    private boolean matchesDirOrFile(VirtualFileSystem vfs) {
         try {
             FileNode node = vfs.resolve(path, "/");
             if (expectedType == NodeType.DIR) {
@@ -50,6 +84,36 @@ public class Checkpoint {
             } else {
                 return !node.isDirectory();
             }
+        } catch (VfsException e) {
+            return false;
+        }
+    }
+
+    private boolean matchesNotExists(VirtualFileSystem vfs) {
+        return !vfs.exists(path, "/");
+    }
+
+    private boolean matchesContentEquals(VirtualFileSystem vfs) {
+        try {
+            FileNode node = vfs.resolve(path, "/");
+            if (node.isDirectory()) {
+                return false;
+            }
+            String content = ((RegularFile) node).getContent();
+            return content != null && content.equals(expectedContent);
+        } catch (VfsException e) {
+            return false;
+        }
+    }
+
+    private boolean matchesPerm(VirtualFileSystem vfs) {
+        try {
+            FileNode node = vfs.resolve(path, "/");
+            Permission perm = node.getPermission();
+            if (perm == null || expectedPermission == null) {
+                return false;
+            }
+            return perm.toString().equals(expectedPermission);
         } catch (VfsException e) {
             return false;
         }
