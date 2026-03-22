@@ -11,6 +11,8 @@ import linuxlingo.shell.command.ChmodCommand;
 import linuxlingo.shell.command.ClearCommand;
 import linuxlingo.shell.command.Command;
 import linuxlingo.shell.command.CpCommand;
+import linuxlingo.shell.command.DateCommand;
+import linuxlingo.shell.command.DiffCommand;
 import linuxlingo.shell.command.EchoCommand;
 import linuxlingo.shell.command.EnvDeleteCommand;
 import linuxlingo.shell.command.EnvListCommand;
@@ -20,6 +22,7 @@ import linuxlingo.shell.command.HeadCommand;
 import linuxlingo.shell.command.HelpCommand;
 import linuxlingo.shell.command.LoadCommand;
 import linuxlingo.shell.command.LsCommand;
+import linuxlingo.shell.command.ManCommand;
 import linuxlingo.shell.command.MkdirCommand;
 import linuxlingo.shell.command.MvCommand;
 import linuxlingo.shell.command.PwdCommand;
@@ -28,9 +31,13 @@ import linuxlingo.shell.command.RmCommand;
 import linuxlingo.shell.command.SaveCommand;
 import linuxlingo.shell.command.SortCommand;
 import linuxlingo.shell.command.TailCommand;
+import linuxlingo.shell.command.TeeCommand;
 import linuxlingo.shell.command.TouchCommand;
+import linuxlingo.shell.command.TreeCommand;
 import linuxlingo.shell.command.UniqCommand;
 import linuxlingo.shell.command.WcCommand;
+import linuxlingo.shell.command.WhichCommand;
+import linuxlingo.shell.command.WhoamiCommand;
 
 /**
  * Registry that maps command name strings to {@link Command} instances.
@@ -88,13 +95,13 @@ public final class CommandRegistry {
         // TODO v2.0 (Owner A): register("history", new HistoryCommand());
 
         // ── v2.0 — New Commands (Owner: C) ─────────────────────
-        // TODO v2.0 (Owner C): register("man", new ManCommand());
-        // TODO v2.0 (Owner C): register("tree", new TreeCommand());
-        // TODO v2.0 (Owner C): register("which", new WhichCommand());
-        // TODO v2.0 (Owner C): register("whoami", new WhoamiCommand());
-        // TODO v2.0 (Owner C): register("date", new DateCommand());
-        // TODO v2.0 (Owner C): register("tee", new TeeCommand());
-        // TODO v2.0 (Owner C): register("diff", new DiffCommand());
+        register("man", new ManCommand());
+        register("tree", new TreeCommand());
+        register("which", new WhichCommand());
+        register("whoami", new WhoamiCommand());
+        register("date", new DateCommand());
+        register("tee", new TeeCommand());
+        register("diff", new DiffCommand());
     }
 
     public void register(String name, Command cmd) {
