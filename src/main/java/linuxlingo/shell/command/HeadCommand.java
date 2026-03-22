@@ -9,13 +9,22 @@ import linuxlingo.shell.vfs.VfsException;
 
 /**
  * Displays the first N lines of a file (default 10).
- * Syntax: head [-n N] &lt;file&gt;
+ * Syntax: head [-n N] &lt;file&gt; [file2...]
+ *
+ * <p><b>v1.0</b>: Single file head with -n option and stdin fallback.</p>
+ * <p><b>v2.0</b>: Adds multi-file support with {@code ==> filename <==} headers.</p>
  *
  * <p><b>Owner: C</b></p>
  */
 public class HeadCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
+        // TODO [v2.0]: Support multiple files with headers.
+        //  - Collect file args into a List<String> instead of a single String.
+        //  - When multiple files are provided, print "==> filename <==" header
+        //    before each file's output, with a blank line between files.
+
+        // ===== v1.0 implementation =====
         int n = 10;
         String file = null;
 
@@ -68,15 +77,16 @@ public class HeadCommand implements Command {
         }
 
         return CommandResult.success(String.join("\n", results));
+        // ===== end v1.0 =====
     }
 
     @Override
     public String getUsage() {
-        return "head [-n N] <file>";
+        return "head [-n N] <file> [file2...]";
     }
 
     @Override
     public String getDescription() {
-        return "Display first N lines of a file (default 10)";
+        return "Display first N lines of file(s) (default 10)";
     }
 }

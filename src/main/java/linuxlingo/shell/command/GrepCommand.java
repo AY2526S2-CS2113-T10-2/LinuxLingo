@@ -2,6 +2,7 @@ package linuxlingo.shell.command;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Pattern;
 
 import linuxlingo.shell.CommandResult;
 import linuxlingo.shell.ShellSession;
@@ -9,13 +10,17 @@ import linuxlingo.shell.vfs.VfsException;
 
 /**
  * Searches for a pattern in a file.
- * Syntax: grep [-i] [-v] [-n] [-c] &lt;pattern&gt; &lt;file&gt;
+ * Syntax: grep [-E] [-i] [-v] [-n] [-c] &lt;pattern&gt; &lt;file&gt;
+ *
+ * <p><b>v1.0</b>: Basic grep with -i, -v, -n, -c flags and literal string matching.</p>
+ * <p><b>v2.0</b>: Adds {@code -E} flag for extended regex matching via {@link Pattern}.</p>
  *
  * <p><b>Owner: C</b></p>
  */
 public class GrepCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
+        // ===== v1.0 implementation =====
         boolean ignoreCase = false;
         boolean showLineNumbers = false;
         boolean countOnly = false;
@@ -40,6 +45,10 @@ public class GrepCommand implements Command {
                     file = arg;
                 }
             } else {
+                // TODO [v2.0]: Recognise "-E" flag here to enable regex mode.
+                //  - Set a useRegex boolean flag.
+                //  - Later, compile the pattern with Pattern.compile() and use
+                //    regexPattern.matcher(line).find() instead of String.contains().
                 return CommandResult.error("grep: " + getUsage());
             }
         }
@@ -102,15 +111,16 @@ public class GrepCommand implements Command {
         }
 
         return CommandResult.success(String.join("\n", results));
+        // ===== end v1.0 =====
     }
 
     @Override
     public String getUsage() {
-        return "grep [-i] [-v] [-n] [-c] <pattern> <file>";
+        return "grep [-E] [-i] [-v] [-n] [-c] <pattern> <file>";
     }
 
     @Override
     public String getDescription() {
-        return "Search for pattern in file";
+        return "Search for pattern in file (use -E for regex)";
     }
 }

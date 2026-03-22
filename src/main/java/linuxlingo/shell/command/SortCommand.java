@@ -13,11 +13,15 @@ import linuxlingo.shell.vfs.VfsException;
  * Sorts lines of a file.
  * Syntax: sort [-r] [-n] &lt;file&gt;
  *
+ * <p><b>v1.0</b>: Sort with -r (reverse) and -n (numeric) flags.</p>
+ * <p><b>v2.0 [TODO]</b>: Add -u flag to output only unique lines after sorting.</p>
+ *
  * <p><b>Owner: C</b></p>
  */
 public class SortCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
+        // ===== v1.0 implementation (-r, -n flags) =====
         boolean reverse = false;
         boolean numeric = false;
 
@@ -72,6 +76,12 @@ public class SortCommand implements Command {
         if (reverse) {
             Collections.reverse(results);
         }
+        // ===== end v1.0 =====
+
+        // TODO [v2.0]: Add -u (unique) flag support.
+        //  - Parse "-u" flag in the arg loop above
+        //  - After sorting, remove adjacent duplicate lines
+        //  - Update getUsage() to "sort [-r] [-n] [-u] <file>"
 
         return CommandResult.success(String.join("\n", results));
     }

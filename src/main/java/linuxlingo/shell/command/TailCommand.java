@@ -11,11 +11,15 @@ import linuxlingo.shell.vfs.VfsException;
  * Displays the last N lines of a file (default 10).
  * Syntax: tail [-n N] &lt;file&gt;
  *
+ * <p><b>v1.0</b>: Single file support with -n flag.</p>
+ * <p><b>v2.0 [TODO]</b>: Support multiple files with "==>" headers between outputs.</p>
+ *
  * <p><b>Owner: C</b></p>
  */
 public class TailCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
+        // ===== v1.0 implementation (single file) =====
         int n = 10;
         String file = null;
 
@@ -66,6 +70,12 @@ public class TailCommand implements Command {
         }
 
         return CommandResult.success(String.join("\n", results));
+        // ===== end v1.0 =====
+
+        // TODO [v2.0]: Support multiple files.
+        //  - Collect non-flag args into a List<String> files
+        //  - When files.size() > 1, print "==> filename <==" header before each file's output
+        //  - Update getUsage() to "tail [-n N] <file> [file2...]"
     }
 
     @Override

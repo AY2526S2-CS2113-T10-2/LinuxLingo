@@ -3,7 +3,6 @@ package linuxlingo.shell.command;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +38,6 @@ public class FindCommandTest {
     public void findCommand_invalidArgs_returnsError() {
         String[] args = {"/tmp"};
         CommandResult result = command.execute(session, args, null);
-
         assertFalse(result.isSuccess());
         assertEquals("find: " + command.getUsage(), result.getStderr());
     }
