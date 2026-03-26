@@ -14,6 +14,7 @@ import linuxlingo.exam.QuestionBank;
 import linuxlingo.exam.question.FitbQuestion;
 import linuxlingo.exam.question.McqQuestion;
 import linuxlingo.exam.question.PracQuestion;
+import linuxlingo.exam.question.PracQuestion.SetupItem;
 import linuxlingo.exam.question.Question;
 
 /**
@@ -89,7 +90,7 @@ public class QuestionParser {
                     questions.add(parseFitb(questionText, answer, explanation, difficulty));
                     break;
                 case "PRAC":
-                    questions.add(parsePrac(questionText, answer, explanation, difficulty));
+                    questions.add(parsePrac(questionText, answer, options, explanation, difficulty));
                     break;
                 default:
                     LOGGER.log(Level.WARNING, "Skipping unknown question type ''{0}'' at line {1} in {2}",
@@ -167,27 +168,86 @@ public class QuestionParser {
     /**
      * Parse a single PRAC line into a {@link PracQuestion}.
      *
-     * <p>The answer field contains comma-separated checkpoints:
+     * <p><b>[v1.0]</b> The answer field contains comma-separated checkpoints:
      * {@code "/path:TYPE,/path2:TYPE"} where TYPE is {@code DIR} or {@code FILE}.</p>
+     *
+     * <p><b>[v2.0]</b> Signature updated to accept {@code options} for setup items.
+     * Setup items are semicolon-separated in the options field.
+     * <b>TODO:</b> implement setup-item parsing via {@link #parseSetupItem(String)}.</p>
      */
     private static PracQuestion parsePrac(String questionText, String answer,
-                                          String explanation, Question.Difficulty difficulty) {
+                                          String options, String explanation,
+                                          Question.Difficulty difficulty) {
+        // --- v1.0 checkpoint parsing (unchanged) ---
         String[] parts = answer.split(",");
         List<Checkpoint> checkpoints = new ArrayList<>();
         for (String part : parts) {
-            String[] checkpointParts = part.trim().split(":", 2);
-            if (checkpointParts.length == 2) {
-                Checkpoint.NodeType nodeType = checkpointParts[1].trim().equalsIgnoreCase("DIR")
-                        ? Checkpoint.NodeType.DIR : Checkpoint.NodeType.FILE;
-                checkpoints.add(new Checkpoint(checkpointParts[0].trim(), nodeType));
-            } else {
-                throw new IllegalArgumentException("Invalid PRAC checkpoint format: " + part);
-            }
+            checkpoints.add(parseCheckpoint(part.trim()));
         }
         if (checkpoints.isEmpty()) {
             throw new IllegalArgumentException("PRAC checkpoints must not be empty");
         }
-        return new PracQuestion(questionText, explanation, difficulty, checkpoints);
+
+        // TODO [v2.0]: Parse setup items from 'options' field (semicolon-separated).
+        //              Call parseSetupItem() for each part and collect into setupItems list.
+        List<SetupItem> setupItems = new ArrayList<>();
+
+        return new PracQuestion(questionText, explanation, difficulty, checkpoints, setupItems);
+    }
+
+    /**
+     * Parse a single checkpoint string into a {@link Checkpoint}.
+     *
+     * <p><b>[v1.0]</b> Supports {@code DIR} and {@code FILE} types only.</p>
+     * <p><b>[v2.0 TODO]</b> Add support for {@code NOT_EXISTS},
+     * {@code CONTENT_EQUALS=value}, and {@code PERM=value} types.</p>
+     *
+     * @param checkpoint string in format {@code "path:TYPE"}
+     * @return parsed {@link Checkpoint}
+     */
+    private static Checkpoint parseCheckpoint(String checkpoint) {
+        // --- v1.0 logic: simple path:DIR / path:FILE parsing ---
+        String[] checkpointParts = checkpoint.split(":", 2);
+        if (checkpointParts.length == 2) {
+            Checkpoint.NodeType nodeType = checkpointParts[1].trim().equalsIgnoreCase("DIR")
+                    ? Checkpoint.NodeType.DIR : Checkpoint.NodeType.FILE;
+            return new Checkpoint(checkpointParts[0].trim(), nodeType);
+        } else {
+            throw new IllegalArgumentException("Invalid PRAC checkpoint format: " + checkpoint);
+        }
+        // TODO [v2.0]: Use findTypeColon() for correct colon detection in paths.
+        //              Handle NOT_EXISTS, CONTENT_EQUALS=value, PERM=value types.
+    }
+
+    /**
+     * Find the colon that separates the path from the type in a checkpoint string.
+     *
+     * <p><b>[v2.0 TODO]</b> Needed for correct parsing of paths containing colons.
+     * Finds the colon <em>after</em> the last {@code /} to avoid splitting
+     * on colons within the path itself.</p>
+     *
+     * @param checkpoint the raw checkpoint string
+     * @return index of the type-separator colon, or {@code -1} if not found
+     */
+    private static int findTypeColon(String checkpoint) {
+        // TODO [v2.0]: Implement — locate the colon after the last '/' separator.
+        return checkpoint.indexOf(':');
+    }
+
+    /**
+     * Parse a single setup-item string into a {@link SetupItem}.
+     *
+     * <p><b>[v2.0 TODO]</b> Parse setup items of the form
+     * {@code TYPE:path[=value]} where TYPE is {@code MKDIR}, {@code FILE},
+     * or {@code PERM}.</p>
+     *
+     * @param item the raw setup-item string (e.g. {@code "MKDIR:/tmp/dir"})
+     * @return parsed {@link SetupItem}, or {@code null} if invalid
+     */
+    private static SetupItem parseSetupItem(String item) {
+        // TODO [v2.0]: Implement parsing for MKDIR, FILE (with optional =content),
+        //              and PERM (path=permissions) setup items.
+        return null;
     }
 
     /**

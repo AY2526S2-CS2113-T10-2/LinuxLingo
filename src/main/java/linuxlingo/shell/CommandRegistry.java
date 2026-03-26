@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 
+import linuxlingo.shell.command.AliasCommand;
 import linuxlingo.shell.command.CatCommand;
 import linuxlingo.shell.command.CdCommand;
 import linuxlingo.shell.command.ChmodCommand;
@@ -20,6 +21,7 @@ import linuxlingo.shell.command.FindCommand;
 import linuxlingo.shell.command.GrepCommand;
 import linuxlingo.shell.command.HeadCommand;
 import linuxlingo.shell.command.HelpCommand;
+import linuxlingo.shell.command.HistoryCommand;
 import linuxlingo.shell.command.LoadCommand;
 import linuxlingo.shell.command.LsCommand;
 import linuxlingo.shell.command.ManCommand;
@@ -34,6 +36,7 @@ import linuxlingo.shell.command.TailCommand;
 import linuxlingo.shell.command.TeeCommand;
 import linuxlingo.shell.command.TouchCommand;
 import linuxlingo.shell.command.TreeCommand;
+import linuxlingo.shell.command.UnaliasCommand;
 import linuxlingo.shell.command.UniqCommand;
 import linuxlingo.shell.command.WcCommand;
 import linuxlingo.shell.command.WhichCommand;
@@ -90,9 +93,9 @@ public final class CommandRegistry {
         register("envdelete", new EnvDeleteCommand());
 
         // ── v2.0 — New Commands (Owner: A) ─────────────────────
-        // TODO v2.0 (Owner A): register("alias", new AliasCommand());
-        // TODO v2.0 (Owner A): register("unalias", new UnaliasCommand());
-        // TODO v2.0 (Owner A): register("history", new HistoryCommand());
+        register("alias", new AliasCommand());
+        register("unalias", new UnaliasCommand());
+        register("history", new HistoryCommand());
 
         // ── v2.0 — New Commands (Owner: C) ─────────────────────
         register("man", new ManCommand());
