@@ -178,19 +178,34 @@ public class QuestionParser {
     private static PracQuestion parsePrac(String questionText, String answer,
                                           String options, String explanation,
                                           Question.Difficulty difficulty) {
-        // --- v1.0 checkpoint parsing (unchanged) ---
+        // --- checkpoint parsing (DIR/FILE/NOT_EXISTS/CONTENT_EQUALS/PERM) ---
         String[] parts = answer.split(",");
         List<Checkpoint> checkpoints = new ArrayList<>();
         for (String part : parts) {
-            checkpoints.add(parseCheckpoint(part.trim()));
+            String trimmed = part.trim();
+            if (!trimmed.isEmpty()) {
+                checkpoints.add(parseCheckpoint(trimmed));
+            }
         }
         if (checkpoints.isEmpty()) {
             throw new IllegalArgumentException("PRAC checkpoints must not be empty");
         }
 
-        // TODO [v2.0]: Parse setup items from 'options' field (semicolon-separated).
-        //              Call parseSetupItem() for each part and collect into setupItems list.
+        // v2.0: parse setup items from 'options' field (semicolon-separated).
         List<SetupItem> setupItems = new ArrayList<>();
+        if (options != null && !options.trim().isEmpty()) {
+            String[] rawItems = options.split(";");
+            for (String raw : rawItems) {
+                String trimmed = raw.trim();
+                if (trimmed.isEmpty()) {
+                    continue;
+                }
+                SetupItem item = parseSetupItem(trimmed);
+                if (item != null) {
+                    setupItems.add(item);
+                }
+            }
+        }
 
         return new PracQuestion(questionText, explanation, difficulty, checkpoints, setupItems);
     }
@@ -294,9 +309,52 @@ public class QuestionParser {
      * @return parsed {@link SetupItem}, or {@code null} if invalid
      */
     private static SetupItem parseSetupItem(String item) {
-        // TODO [v2.0]: Implement parsing for MKDIR, FILE (with optional =content),
-        //              and PERM (path=permissions) setup items.
-        return null;
+        // Expected formats:
+        // MKDIR:/path
+        // FILE:/path=content
+        // PERM:/path=rwxr-xr-x
+        if (item == null) {
+            return null;
+        }
+        String trimmed = item.trim();
+        if (trimmed.isEmpty()) {
+            return null;
+        }
+
+        int colonIndex = trimmed.indexOf(':');
+        if (colonIndex <= 0 || colonIndex >= trimmed.length() - 1) {
+            return null;
+        }
+
+        String typePart = trimmed.substring(0, colonIndex).trim().toUpperCase(Locale.ROOT);
+        String rest = trimmed.substring(colonIndex + 1).trim();
+        if (rest.isEmpty()) {
+            return null;
+        }
+
+        String path;
+        String value = null;
+        int equalsIndex = rest.indexOf('=');
+        if (equalsIndex >= 0) {
+            path = rest.substring(0, equalsIndex).trim();
+            value = rest.substring(equalsIndex + 1).trim();
+        } else {
+            path = rest.trim();
+        }
+
+        if (path.isEmpty()) {
+            return null;
+        }
+
+        PracQuestion.SetupItem.SetupType setupType;
+        try {
+            setupType = PracQuestion.SetupItem.SetupType.valueOf(typePart);
+        } catch (IllegalArgumentException e) {
+            // Unknown setup type; skip this item.
+            return null;
+        }
+
+        return new SetupItem(setupType, path, value);
     }
 
     /**
