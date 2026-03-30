@@ -97,19 +97,60 @@ public class PracQuestion extends Question {
     /**
      * Apply setup items to the given VFS to prepare the environment.
      *
-     * <p>v2.0 stub — to be implemented by Member D.</p>
-     * <p>Should iterate setupItems and apply each one:</p>
+     * <p>For each {@link SetupItem}:</p>
      * <ul>
-     *   <li>MKDIR — create directory (with parents) via
-     *       {@link VirtualFileSystem#createDirectory(String, String, boolean)}</li>
-     *   <li>FILE — create parent dirs, create file, optionally write content</li>
-     *   <li>PERM — resolve node, set permission via {@code new Permission(value)}</li>
+     *   <li>{@code MKDIR} &rarr; {@code vfs.createDirectory(path, "/", true)}</li>
+     *   <li>{@code FILE} &rarr; {@code vfs.createFile(path, "/")}, then
+     *       {@code vfs.writeFile(path, "/", value, false)} if {@code value} is non-null
+     *       and not blank</li>
+     *   <li>{@code PERM} &rarr; resolve the node and set its permission from the
+     *       symbolic string via the node's {@code setPermission} API</li>
      * </ul>
+     *
+     * <p>Setup items are applied in list order.</p>
      *
      * @param vfs the virtual file system to set up
      */
     public void applySetup(VirtualFileSystem vfs) {
-        // TODO v2.0: implement setup application for each SetupItem type
+        if (vfs == null || setupItems == null || setupItems.isEmpty()) {
+            return;
+        }
+
+        for (SetupItem item : setupItems) {
+            if (item == null) {
+                continue;
+            }
+            String path = item.getPath();
+            String value = item.getValue();
+            if (path == null || path.isBlank()) {
+                continue;
+            }
+
+            switch (item.getType()) {
+            case MKDIR:
+                vfs.createDirectory(path, "/", true);
+                break;
+            case FILE:
+                vfs.createFile(path, "/");
+                if (value != null && !value.isBlank()) {
+                    vfs.writeFile(path, "/", value, false);
+                }
+                break;
+            case PERM:
+                if (value != null && !value.isBlank()) {
+                    var node = vfs.resolve(path, "/");
+                    if (node != null) {
+                        var current = node.getPermission();
+                        node.setPermission(
+                                linuxlingo.shell.vfs.Permission.fromSymbolic(value, current));
+                    }
+                }
+                break;
+            default:
+                // Ignore unknown setup types to stay robust against future extensions.
+                break;
+            }
+        }
     }
 
     public boolean checkVfs(VirtualFileSystem vfs) {
