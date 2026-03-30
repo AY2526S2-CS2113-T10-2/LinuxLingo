@@ -140,9 +140,7 @@ public class PracQuestion extends Question {
                 if (value != null && !value.isBlank()) {
                     var node = vfs.resolve(path, "/");
                     if (node != null) {
-                        var current = node.getPermission();
-                        node.setPermission(
-                                linuxlingo.shell.vfs.Permission.fromSymbolic(value, current));
+                        node.setPermission(new linuxlingo.shell.vfs.Permission(value));
                     }
                 }
                 break;
