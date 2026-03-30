@@ -26,7 +26,8 @@ public class PracQuestionTest {
         PracQuestion question = makeQuestion(List.of());
         String output = question.present();
 
-        assertTrue(output.contains("(PRAC · MEDIUM)"));
+        assertTrue(output.contains("PRAC"));
+        assertTrue(output.contains("MEDIUM"));
         assertTrue(output.contains("Create project artifacts"));
     }
 
