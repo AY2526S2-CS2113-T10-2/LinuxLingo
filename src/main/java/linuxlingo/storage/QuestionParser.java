@@ -211,19 +211,17 @@ public class QuestionParser {
      * @return parsed {@link Checkpoint}
      */
     private static Checkpoint parseCheckpoint(String checkpoint) {
-        // --- v1.0 logic: simple path:DIR / path:FILE parsing ---
-        String[] checkpointParts = checkpoint.split(":", 2);
-        if (checkpointParts.length != 2) {
+        int colonIndex = findTypeColon(checkpoint);
+        if (colonIndex <= 0 || colonIndex >= checkpoint.length() - 1) {
             throw new IllegalArgumentException("Invalid PRAC checkpoint format: " + checkpoint);
         }
 
-        String path = checkpointParts[0].trim();
-        String typeAndValue = checkpointParts[1].trim();
+        String path = checkpoint.substring(0, colonIndex).trim();
+        String typeAndValue = checkpoint.substring(colonIndex + 1).trim();
         if (path.isEmpty() || typeAndValue.isEmpty()) {
             throw new IllegalArgumentException("Invalid PRAC checkpoint format: " + checkpoint);
         }
 
-        // Split TYPE and optional =value for CONTENT_EQUALS and PERM.
         String type;
         String value = null;
         int equalsIndex = typeAndValue.indexOf('=');
@@ -271,7 +269,17 @@ public class QuestionParser {
      * @return index of the type-separator colon, or {@code -1} if not found
      */
     private static int findTypeColon(String checkpoint) {
-        // TODO [v2.0]: Implement — locate the colon after the last '/' separator.
+        if (checkpoint == null) {
+            return -1;
+        }
+        // Prefer the colon that separates path from TYPE: look after the last '/'.
+        int lastSlash = checkpoint.lastIndexOf('/');
+        int from = Math.max(lastSlash + 1, 0);
+        int idx = checkpoint.indexOf(':', from);
+        if (idx >= 0) {
+            return idx;
+        }
+        // Fallback: first colon in the string (keeps legacy behaviour for simple cases).
         return checkpoint.indexOf(':');
     }
 
