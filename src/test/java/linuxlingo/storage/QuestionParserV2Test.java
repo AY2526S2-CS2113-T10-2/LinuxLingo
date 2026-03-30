@@ -44,8 +44,6 @@ public class QuestionParserV2Test {
         assertEquals(Checkpoint.NodeType.FILE, pq.getCheckpoints().get(1).getExpectedType());
     }
 
-    // v2.0 @Disabled — NOT_EXISTS parsing is stubbed
-    @Disabled("v2.0 — NOT_EXISTS parsing to be implemented")
     @Test
     public void parsePrac_notExists_parsesCorrectly() throws Exception {
         Path file = createTempFile(
@@ -58,8 +56,6 @@ public class QuestionParserV2Test {
         assertEquals(Checkpoint.NodeType.NOT_EXISTS, pq.getCheckpoints().get(0).getExpectedType());
     }
 
-    // v2.0 @Disabled — CONTENT_EQUALS parsing is stubbed
-    @Disabled("v2.0 — CONTENT_EQUALS parsing to be implemented")
     @Test
     public void parsePrac_contentEquals_parsesCorrectly() throws Exception {
         Path file = createTempFile(
@@ -75,8 +71,6 @@ public class QuestionParserV2Test {
         assertEquals("hello world", cp.getExpectedContent());
     }
 
-    // v2.0 @Disabled — PERM parsing is stubbed
-    @Disabled("v2.0 — PERM parsing to be implemented")
     @Test
     public void parsePrac_perm_parsesCorrectly() throws Exception {
         Path file = createTempFile(
@@ -92,8 +86,6 @@ public class QuestionParserV2Test {
         assertEquals("rwxr-xr-x", cp.getExpectedPermission());
     }
 
-    // v2.0 @Disabled — mixed checkpoint parsing is stubbed
-    @Disabled("v2.0 — mixed checkpoint parsing to be implemented")
     @Test
     public void parsePrac_mixedCheckpoints_parsesAll() throws Exception {
         Path file = createTempFile(
@@ -110,8 +102,6 @@ public class QuestionParserV2Test {
         assertEquals(Checkpoint.NodeType.NOT_EXISTS, pq.getCheckpoints().get(2).getExpectedType());
     }
 
-    // v2.0 @Disabled — SETUP parsing is stubbed
-    @Disabled("v2.0 — SETUP parsing to be implemented")
     @Test
     public void parsePrac_withSetup_mkdir() throws Exception {
         Path file = createTempFile(
@@ -127,8 +117,6 @@ public class QuestionParserV2Test {
         assertEquals("/home/user/project", pq.getSetupItems().get(0).getPath());
     }
 
-    // v2.0 @Disabled — SETUP parsing is stubbed
-    @Disabled("v2.0 — SETUP parsing to be implemented")
     @Test
     public void parsePrac_withSetup_fileWithContent() throws Exception {
         Path file = createTempFile(
@@ -144,8 +132,6 @@ public class QuestionParserV2Test {
         assertEquals("hello", item.getValue());
     }
 
-    // v2.0 @Disabled — SETUP parsing is stubbed
-    @Disabled("v2.0 — SETUP parsing to be implemented")
     @Test
     public void parsePrac_withSetup_perm() throws Exception {
         Path file = createTempFile(
@@ -160,8 +146,6 @@ public class QuestionParserV2Test {
         assertEquals("rw-r--r--", item.getValue());
     }
 
-    // v2.0 @Disabled — SETUP parsing is stubbed
-    @Disabled("v2.0 — SETUP parsing to be implemented")
     @Test
     public void parsePrac_withMultipleSetups_parsesAll() throws Exception {
         Path file = createTempFile(
