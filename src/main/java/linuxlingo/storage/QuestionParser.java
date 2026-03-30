@@ -199,8 +199,13 @@ public class QuestionParser {
      * Parse a single checkpoint string into a {@link Checkpoint}.
      *
      * <p><b>[v1.0]</b> Supports {@code DIR} and {@code FILE} types only.</p>
-     * <p><b>[v2.0 TODO]</b> Add support for {@code NOT_EXISTS},
-     * {@code CONTENT_EQUALS=value}, and {@code PERM=value} types.</p>
+     * <p><b>[v2.0]</b> Also supports:
+     * <ul>
+     *   <li>{@code NOT_EXISTS}</li>
+     *   <li>{@code CONTENT_EQUALS=value}</li>
+     *   <li>{@code PERM=value}</li>
+     * </ul>
+     * </p>
      *
      * @param checkpoint string in format {@code "path:TYPE"}
      * @return parsed {@link Checkpoint}
@@ -208,15 +213,51 @@ public class QuestionParser {
     private static Checkpoint parseCheckpoint(String checkpoint) {
         // --- v1.0 logic: simple path:DIR / path:FILE parsing ---
         String[] checkpointParts = checkpoint.split(":", 2);
-        if (checkpointParts.length == 2) {
-            Checkpoint.NodeType nodeType = checkpointParts[1].trim().equalsIgnoreCase("DIR")
-                    ? Checkpoint.NodeType.DIR : Checkpoint.NodeType.FILE;
-            return new Checkpoint(checkpointParts[0].trim(), nodeType);
-        } else {
+        if (checkpointParts.length != 2) {
             throw new IllegalArgumentException("Invalid PRAC checkpoint format: " + checkpoint);
         }
-        // TODO [v2.0]: Use findTypeColon() for correct colon detection in paths.
-        //              Handle NOT_EXISTS, CONTENT_EQUALS=value, PERM=value types.
+
+        String path = checkpointParts[0].trim();
+        String typeAndValue = checkpointParts[1].trim();
+        if (path.isEmpty() || typeAndValue.isEmpty()) {
+            throw new IllegalArgumentException("Invalid PRAC checkpoint format: " + checkpoint);
+        }
+
+        // Split TYPE and optional =value for CONTENT_EQUALS and PERM.
+        String type;
+        String value = null;
+        int equalsIndex = typeAndValue.indexOf('=');
+        if (equalsIndex >= 0) {
+            type = typeAndValue.substring(0, equalsIndex).trim();
+            value = typeAndValue.substring(equalsIndex + 1).trim();
+        } else {
+            type = typeAndValue.trim();
+        }
+
+        String upperType = type.toUpperCase(Locale.ROOT);
+        switch (upperType) {
+        case "DIR":
+            return new Checkpoint(path, Checkpoint.NodeType.DIR);
+        case "FILE":
+            return new Checkpoint(path, Checkpoint.NodeType.FILE);
+        case "NOT_EXISTS":
+            return new Checkpoint(path, Checkpoint.NodeType.NOT_EXISTS);
+        case "CONTENT_EQUALS":
+            if (value == null || value.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "CONTENT_EQUALS checkpoint must specify a value: " + checkpoint);
+            }
+            return new Checkpoint(path, Checkpoint.NodeType.CONTENT_EQUALS, value, null);
+        case "PERM":
+            if (value == null || value.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "PERM checkpoint must specify permissions: " + checkpoint);
+            }
+            return new Checkpoint(path, Checkpoint.NodeType.PERM, null, value);
+        default:
+            throw new IllegalArgumentException(
+                    "Unknown PRAC checkpoint type: " + type + " in " + checkpoint);
+        }
     }
 
     /**
