@@ -9,7 +9,6 @@ import org.junit.jupiter.api.Test;
 
 import linuxlingo.shell.CommandResult;
 import linuxlingo.shell.ShellSession;
-import linuxlingo.shell.vfs.RegularFile;
 import linuxlingo.shell.vfs.VirtualFileSystem;
 
 public class FindCommandTest {

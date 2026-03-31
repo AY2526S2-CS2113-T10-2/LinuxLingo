@@ -3,8 +3,6 @@ package linuxlingo.shell.command;
 import java.util.ArrayList;
 import java.util.List;
 
-import javax.swing.*;
-
 import linuxlingo.shell.CommandResult;
 import linuxlingo.shell.ShellSession;
 import linuxlingo.shell.vfs.VfsException;
