@@ -7,6 +7,7 @@ import java.io.PrintStream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -39,7 +40,7 @@ class ShellSessionTest {
         ShellSession session = createSession("");
         CommandResult result = session.executeOnce("echo hello world");
         assertTrue(result.isSuccess());
-        assertEquals("hello world", result.getStdout());
+        assertEquals("hello world\n", result.getStdout());
     }
 
     @Test
@@ -72,14 +73,14 @@ class ShellSessionTest {
     void executeOnce_andOperator_continuesOnSuccess() {
         ShellSession session = createSession("");
         CommandResult result = session.executeOnce("echo ok && echo second");
-        assertEquals("second", result.getStdout());
+        assertEquals("second\n", result.getStdout());
     }
 
     @Test
     void executeOnce_semicolonOperator_alwaysContinues() {
         ShellSession session = createSession("");
         CommandResult result = session.executeOnce("nonexistent ; echo after-error");
-        assertEquals("after-error", result.getStdout());
+        assertEquals("after-error\n", result.getStdout());
     }
 
     @Test
@@ -87,7 +88,7 @@ class ShellSessionTest {
         ShellSession session = createSession("");
         session.executeOnce("echo hello > /tmp/out.txt");
         assertTrue(vfs.exists("/tmp/out.txt", "/"));
-        assertEquals("hello", vfs.readFile("/tmp/out.txt", "/"));
+        assertEquals("hello\n", vfs.readFile("/tmp/out.txt", "/"));
     }
 
     @Test
@@ -96,7 +97,7 @@ class ShellSessionTest {
         vfs.createFile("/tmp/out.txt", "/");
         vfs.writeFile("/tmp/out.txt", "/", "first\n", false);
         session.executeOnce("echo second >> /tmp/out.txt");
-        assertEquals("first\nsecond", vfs.readFile("/tmp/out.txt", "/"));
+        assertEquals("first\nsecond\n", vfs.readFile("/tmp/out.txt", "/"));
     }
 
     @Test

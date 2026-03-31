@@ -7,6 +7,7 @@ import java.io.PrintStream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -48,7 +49,7 @@ public class IntegrationTest {
         session.executeOnce("echo Hello World > /tmp/greeting.txt");
         CommandResult result = session.executeOnce("cat /tmp/greeting.txt");
         assertTrue(result.isSuccess());
-        assertEquals("Hello World", result.getStdout());
+        assertEquals("Hello World\n", result.getStdout());
     }
 
     @Test
@@ -71,8 +72,8 @@ public class IntegrationTest {
 
         CommandResult source = session.executeOnce("cat /tmp/source.txt");
         CommandResult backup = session.executeOnce("cat /tmp/backup.txt");
-        assertEquals("modified content", source.getStdout());
-        assertEquals("original content", backup.getStdout());
+        assertEquals("modified content\n", source.getStdout());
+        assertEquals("original content\n", backup.getStdout());
     }
 
     @Test
@@ -82,7 +83,7 @@ public class IntegrationTest {
 
         assertFalse(vfs.exists("/tmp/old.txt", "/"));
         assertTrue(vfs.exists("/tmp/new.txt", "/"));
-        assertEquals("data", vfs.readFile("/tmp/new.txt", "/"));
+        assertEquals("data\n", vfs.readFile("/tmp/new.txt", "/"));
     }
 
     @Test
@@ -210,7 +211,7 @@ public class IntegrationTest {
     void semicolonOperator_firstFails_continuesSecond() {
         session.executeOnce("cat /nonexistent ; echo after > /tmp/after.txt");
         assertTrue(vfs.exists("/tmp/after.txt", "/"));
-        assertEquals("after", vfs.readFile("/tmp/after.txt", "/"));
+        assertEquals("after\n", vfs.readFile("/tmp/after.txt", "/"));
     }
 
     // ─── Permission Workflows ────────────────────────────────────
@@ -287,7 +288,7 @@ public class IntegrationTest {
         VfsSerializer.DeserializedVfs restored = VfsSerializer.deserialize(serialized);
 
         assertTrue(restored.getVfs().exists("/home/user/project/main.java", "/"));
-        assertEquals("hello",
+        assertEquals("hello\n",
                 restored.getVfs().readFile("/home/user/project/main.java", "/"));
         assertEquals("/home/user/project", restored.getWorkingDir());
     }
@@ -303,7 +304,7 @@ public class IntegrationTest {
         String output = outStream.toString();
         assertTrue(output.contains("hello"));
         assertTrue(vfs.exists("/tmp/test/file.txt", "/"));
-        assertEquals("world", vfs.readFile("/tmp/test/file.txt", "/"));
+        assertEquals("world\n", vfs.readFile("/tmp/test/file.txt", "/"));
     }
 
     @Test
