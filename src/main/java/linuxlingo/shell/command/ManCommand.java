@@ -8,7 +8,7 @@ import linuxlingo.shell.ShellSession;
  * Syntax: man &lt;command&gt;
  *
  * <p><b>Owner: C — stub; to be implemented.</b></p>
- *
+ * <p>
  * TODO: Member C should implement:
  * - Look up the command in the registry
  * - Display NAME, SYNOPSIS (usage), and DESCRIPTION sections
@@ -18,11 +18,19 @@ public class ManCommand implements Command {
 
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
-        // [v2.0 STUB] TODO: Implement man command.
-        // Look up the command in session.getRegistry().
-        // Display formatted NAME, SYNOPSIS (usage), and DESCRIPTION sections.
-        // Return error for missing args or unknown commands.
-        return CommandResult.error("not yet implemented");
+        if (args.length == 0) {
+            return CommandResult.error("man: What manual page do you want?");
+        }
+
+        Command cmd = session.getRegistry().get(args[0]);
+        if (cmd == null) {
+            return CommandResult.error("man: No manual entry for " + args[0]);
+        }
+
+        String output = "NAME\n    " + args[0] + " - " + cmd.getDescription() + "\n\n" +
+                "SYNOPSIS\n    " + cmd.getUsage() + "\n\n" +
+                "DESCRIPTION\n    " + cmd.getDescription();
+        return CommandResult.success(output);
     }
 
     @Override

@@ -8,7 +8,7 @@ import linuxlingo.shell.ShellSession;
  * Syntax: whoami
  *
  * <p><b>Owner: C — stub; to be implemented.</b></p>
- *
+ * <p>
  * TODO: Member C should implement:
  * - Return "user" as the current username
  * - Return error if extra arguments provided
@@ -17,10 +17,11 @@ public class WhoamiCommand implements Command {
 
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
-        // [v2.0 STUB] TODO: Implement whoami command.
-        // Return "user" as the current username.
-        // Return error if extra arguments are provided.
-        return CommandResult.error("not yet implemented");
+        if (args.length > 0) {
+            return CommandResult.error("whoami: extra operand '" + args[0] + "'");
+        }
+
+        return CommandResult.success("user");
     }
 
     @Override
