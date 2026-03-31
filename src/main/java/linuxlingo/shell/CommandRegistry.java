@@ -33,7 +33,6 @@ import linuxlingo.shell.command.RmCommand;
 import linuxlingo.shell.command.SaveCommand;
 import linuxlingo.shell.command.SortCommand;
 import linuxlingo.shell.command.TailCommand;
-import linuxlingo.shell.command.TeeCommand;
 import linuxlingo.shell.command.TouchCommand;
 import linuxlingo.shell.command.TreeCommand;
 import linuxlingo.shell.command.UnaliasCommand;
@@ -103,7 +102,6 @@ public final class CommandRegistry {
         register("which", new WhichCommand());
         register("whoami", new WhoamiCommand());
         register("date", new DateCommand());
-        register("tee", new TeeCommand());
         register("diff", new DiffCommand());
     }
 
