@@ -1,5 +1,10 @@
 package linuxlingo.shell.command;
 
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.swing.*;
+
 import linuxlingo.shell.CommandResult;
 import linuxlingo.shell.ShellSession;
 import linuxlingo.shell.vfs.VfsException;
@@ -16,29 +21,53 @@ import linuxlingo.shell.vfs.VfsException;
 public class CatCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
-        // TODO [v2.0]: Parse -n flag from args to enable line numbering.
-        //  - Separate flags ("-n") from file arguments using a List.
-        //  - After reading content, if -n is set, prepend each line with
-        //    its number formatted as "%6d\t%s".
+        boolean numberLines = false;
+        List<String> files = new ArrayList<>();
 
-        // ===== v1.0 implementation =====
-        if (args.length > 0) {
-            StringBuilder sb = new StringBuilder();
-            for (String arg : args) {
+        for (String arg : args) {
+            if (arg.equals("-n")) {
+                numberLines = true;
+            } else {
+                files.add(arg);
+            }
+        }
+
+        StringBuilder sb = new StringBuilder();
+        int lineNumber = 1;
+
+        if (!files.isEmpty()) {
+            for (String file : files) {
                 try {
-                    String content = session.getVfs().readFile(arg, session.getWorkingDir());
-                    sb.append(content);
+                    String content = session.getVfs().readFile(file, session.getWorkingDir());
+                    lineNumber = appendContent(sb, content, numberLines, lineNumber);
                 } catch (VfsException e) {
                     return CommandResult.error("cat: " + e.getMessage());
                 }
             }
             return CommandResult.success(sb.toString());
-        } else if (stdin != null) {
-            return CommandResult.success(stdin);
-        } else {
-            return CommandResult.error("cat: missing file operand");
         }
-        // ===== end v1.0 =====
+
+        if (stdin != null) {
+            return CommandResult.success(stdin);
+        }
+
+        return CommandResult.error("cat: missing file operand");
+    }
+
+    private int appendContent(StringBuilder sb, String content, boolean numberLines, int lineNumber) {
+        if (!numberLines) {
+            sb.append(content);
+        } else {
+            String[] lines = content.split("\n", -1);
+            // Exclude last empty element if file ends with newline
+            int len = content.endsWith("\n") ? lines.length - 1 : lines.length;
+
+            for (int i = 0; i < len; i++) {
+                sb.append(String.format("%6d\t%s\n", lineNumber++, lines[i]));
+            }
+        }
+
+        return lineNumber;
     }
 
     @Override

@@ -21,9 +21,9 @@ import linuxlingo.shell.vfs.VfsException;
 public class SortCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
-        // ===== v1.0 implementation (-r, -n flags) =====
         boolean reverse = false;
         boolean numeric = false;
+        boolean unique = false;
 
         String file = null;
 
@@ -32,6 +32,8 @@ public class SortCommand implements Command {
                 reverse = true;
             } else if (arg.equals("-n")) {
                 numeric = true;
+            } else if (arg.equals("-u")) {
+                unique = true;
             } else if (!arg.startsWith("-") && file == null) {
                 file = arg;
             } else {
@@ -76,19 +78,26 @@ public class SortCommand implements Command {
         if (reverse) {
             Collections.reverse(results);
         }
-        // ===== end v1.0 =====
 
-        // TODO [v2.0]: Add -u (unique) flag support.
-        //  - Parse "-u" flag in the arg loop above
-        //  - After sorting, remove adjacent duplicate lines
-        //  - Update getUsage() to "sort [-r] [-n] [-u] <file>"
+        if (unique) {
+            List<String> uniqueResults = new ArrayList<>();
+            String prevLine = null;
+
+            for (String line : results) {
+                if (!line.equals(prevLine)) {
+                    uniqueResults.add(line);
+                    prevLine = line;
+                }
+            }
+            results = uniqueResults;
+        }
 
         return CommandResult.success(String.join("\n", results));
     }
 
     @Override
     public String getUsage() {
-        return "sort [-r] [-n] <file>";
+        return "sort [-r] [-n] [-u] <file>";
     }
 
     @Override

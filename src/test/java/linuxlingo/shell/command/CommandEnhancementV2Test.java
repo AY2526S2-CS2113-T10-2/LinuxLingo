@@ -7,6 +7,7 @@ import java.io.PrintStream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Nested;
@@ -25,7 +26,6 @@ import linuxlingo.shell.vfs.VirtualFileSystem;
  * TODO stubs. Enable the corresponding tests once the feature is
  * implemented.</p>
  */
-@Disabled("v2.0 — all command enhancements are stubs; enable as each is implemented")
 public class CommandEnhancementV2Test {
     private ShellSession session;
     private VirtualFileSystem vfs;
@@ -126,6 +126,7 @@ public class CommandEnhancementV2Test {
             String[] args = {"-R", "777", "/home/user/project"};
             CommandResult result = new ChmodCommand().execute(session, args, null);
             assertTrue(result.isSuccess());
+            assertEquals("rwxrwxrwx", vfs.resolve("/home/user/project/file.txt", "/").getPermission().toString());
         }
     }
 

@@ -66,4 +66,16 @@ public class CatCommandTest {
         assertTrue(result.isSuccess());
         assertEquals("piped data", result.getStdout());
     }
+
+    @Test
+    public void catCommand_numberFlag_returnsNumberedLines() {
+        vfs.createFile("/file.txt", "/");
+        vfs.writeFile("/file.txt", "/", "one\ntwo\nthree\nfour\n", false);
+
+        String[] args = {"-n", "file.txt"};
+        CommandResult result = command.execute(session, args, null);
+
+        assertTrue(result.isSuccess());
+        assertEquals("     1\tone\n     2\ttwo\n     3\tthree\n     4\tfour\n", result.getStdout());
+    }
 }

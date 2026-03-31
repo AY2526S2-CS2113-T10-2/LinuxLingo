@@ -1,7 +1,10 @@
 package linuxlingo.shell.command;
 
+import java.sql.PreparedStatement;
 import java.util.ArrayList;
 import java.util.List;
+
+import javax.swing.*;
 
 import linuxlingo.shell.CommandResult;
 import linuxlingo.shell.ShellSession;
@@ -19,14 +22,8 @@ import linuxlingo.shell.vfs.VfsException;
 public class HeadCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
-        // TODO [v2.0]: Support multiple files with headers.
-        //  - Collect file args into a List<String> instead of a single String.
-        //  - When multiple files are provided, print "==> filename <==" header
-        //    before each file's output, with a blank line between files.
-
-        // ===== v1.0 implementation =====
         int n = 10;
-        String file = null;
+        List<String> files = new ArrayList<>();
 
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("-n")) {
@@ -41,43 +38,50 @@ public class HeadCommand implements Command {
                     return CommandResult.error("head: invalid number of lines: " + args[i + 1]);
                 }
             } else {
-                file = args[i];
+                files.add(args[i]);
             }
         }
 
-        String content;
-
-        if (file != null) {
-            try {
-                content = session.getVfs().readFile(file, session.getWorkingDir());
-            } catch (VfsException e) {
-                return CommandResult.error("head: " + e.getMessage());
-            }
-        } else if (stdin != null) {
-            content = stdin;
-        } else {
+        if (files.isEmpty() && stdin == null) {
             return CommandResult.error("head: missing file operand");
         }
 
+        List<String> output = new ArrayList<>();
+        boolean multiFile = files.size() > 1;
+
+        if (!files.isEmpty()) {
+            for (int i = 0; i < files.size(); i++) {
+                try {
+                    String content = session.getVfs().readFile(files.get(i), session.getWorkingDir());
+                    if (multiFile) {
+                        if (i > 0) {
+                            output.add(""); // newline between files
+                        }
+                        output.add("==> " + files.get(i) + " <==");
+                    }
+                    appendHeadLines(output, content, n);
+                } catch (VfsException e) {
+                    return CommandResult.error("head: " + e.getMessage());
+                }
+            }
+        } else {
+            appendHeadLines(output, stdin, n);
+        }
+
+        return CommandResult.success(String.join("\n", output));
+    }
+
+    private void appendHeadLines(List<String> output, String content, int n) {
         if (content.isEmpty()) {
-            return CommandResult.success("");
+            return;
         }
 
         String[] linesArray = content.split("\n", -1);
-        int end;
-        if (n >= 0) {
-            end = Math.min(n, linesArray.length);
-        } else {
-            end = Math.max(0, linesArray.length + n);
-        }
+        int end = (n >= 0) ? Math.min(n, linesArray.length) : Math.max(0, linesArray.length + n);
 
-        List<String> results = new ArrayList<>();
         for (int i = 0; i < end; i++) {
-            results.add(linesArray[i]);
+            output.add(linesArray[i]);
         }
-
-        return CommandResult.success(String.join("\n", results));
-        // ===== end v1.0 =====
     }
 
     @Override

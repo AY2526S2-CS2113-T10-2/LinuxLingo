@@ -19,9 +19,8 @@ import linuxlingo.shell.vfs.VfsException;
 public class TailCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
-        // ===== v1.0 implementation (single file) =====
         int n = 10;
-        String file = null;
+        List<String> files = new ArrayList<>();
 
         for (int i = 0; i < args.length; i++) {
             if (args[i].equals("-n")) {
@@ -40,47 +39,55 @@ public class TailCommand implements Command {
                     return CommandResult.error("tail: invalid number of lines: " + args[i]);
                 }
             } else {
-                file = args[i];
+                files.add(args[i]);
             }
         }
 
-        String content;
-        if (file != null) {
-            try {
-                content = session.getVfs().readFile(file, session.getWorkingDir());
-            } catch (VfsException e) {
-                return CommandResult.error("tail: " + e.getMessage());
-            }
-        } else if (stdin != null) {
-            content = stdin;
-        } else {
+        if (files.isEmpty() && stdin == null) {
             return CommandResult.error("tail: missing file operand");
         }
 
+        List<String> output = new ArrayList<>();
+        boolean multiFile = files.size() > 1;
+
+        if (!files.isEmpty()) {
+            for (int i = 0; i < files.size(); i++) {
+                try {
+                    String content = session.getVfs().readFile(files.get(i), session.getWorkingDir());
+                    if (multiFile) {
+                        if (i > 0) {
+                            output.add(""); // newline between files
+                        }
+                        output.add("==> " + files.get(i) + " <==");
+                    }
+                    appendTailLines(output, content, n);
+                } catch (VfsException e) {
+                    return CommandResult.error("tail: " + e.getMessage());
+                }
+            }
+        } else {
+            appendTailLines(output, stdin, n);
+        }
+
+        return CommandResult.success(String.join("\n", output));
+    }
+
+    private void appendTailLines(List<String> output, String content, int n) {
         if (content.isEmpty()) {
-            return CommandResult.success("");
+            return;
         }
 
         String[] linesArray = content.split("\n", -1);
         int start = Math.max(0, linesArray.length - n);
 
-        List<String> results = new ArrayList<>();
         for (int i = start; i < linesArray.length; i++) {
-            results.add(linesArray[i]);
+            output.add(linesArray[i]);
         }
-
-        return CommandResult.success(String.join("\n", results));
-        // ===== end v1.0 =====
-
-        // TODO [v2.0]: Support multiple files.
-        //  - Collect non-flag args into a List<String> files
-        //  - When files.size() > 1, print "==> filename <==" header before each file's output
-        //  - Update getUsage() to "tail [-n N] <file> [file2...]"
     }
 
     @Override
     public String getUsage() {
-        return "tail [-n N] <file>";
+        return "tail [-n N] <file> [file2...]";
     }
 
     @Override

@@ -19,13 +19,16 @@ import linuxlingo.shell.vfs.VfsException;
 public class UniqCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
-        // ===== v1.0 implementation (-c flag) =====
         boolean countOccurrences = false;
+        boolean duplicatesOnly = false;
+
         String file = null;
 
         for (String arg : args) {
             if (arg.equals("-c")) {
                 countOccurrences = true;
+            } else if (arg.equals("-d")) {
+                duplicatesOnly = true;
             } else if (!arg.startsWith("-") && file == null) {
                 file = arg;
             }
@@ -59,30 +62,16 @@ public class UniqCommand implements Command {
                 if (linesArray[i].equals(currentLine)) {
                     count++;
                 } else {
-                    if (countOccurrences) {
-                        results.add(String.format("%7d %s", count, currentLine));
-                    } else {
-                        results.add(currentLine);
-                    }
+                    addUniqResult(results, currentLine, count, countOccurrences, duplicatesOnly);
                     currentLine = linesArray[i];
                     count = 1;
                 }
             }
 
-            if (countOccurrences) {
-                results.add(String.format("%7d %s", count, currentLine));
-            } else {
-                results.add(currentLine);
-            }
+            addUniqResult(results, currentLine, count, countOccurrences, duplicatesOnly);
         }
 
         return CommandResult.success(String.join("\n", results));
-        // ===== end v1.0 =====
-
-        // TODO [v2.0]: Add -d (duplicates-only) flag.
-        //  - Parse "-d" flag in the arg loop above
-        //  - Refactor result-building into addUniqResult() helper (see stub below)
-        //  - Update getUsage() to "uniq [-c] [-d] <file>"
     }
 
     /**
@@ -96,16 +85,20 @@ public class UniqCommand implements Command {
      */
     private void addUniqResult(List<String> results, String line, int count,
                                boolean countOccurrences, boolean duplicatesOnly) {
-        // TODO [v2.0]: Implement this helper method.
-        //  - If duplicatesOnly && count < 2, skip the line
-        //  - If countOccurrences, format as "%7d %s"
-        //  - Otherwise, just add the line
-        throw new UnsupportedOperationException("v2.0 stub – not yet implemented");
+        if (duplicatesOnly && count < 2) {
+            return;
+        }
+
+        if (countOccurrences) {
+            results.add(String.format("%7d %s", count, line));
+        } else {
+            results.add(line);
+        }
     }
 
     @Override
     public String getUsage() {
-        return "uniq [-c] <file>";
+        return "uniq [-c] [-d] <file>";
     }
 
     @Override

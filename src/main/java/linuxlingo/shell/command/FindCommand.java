@@ -6,6 +6,7 @@ import java.util.List;
 import linuxlingo.shell.CommandResult;
 import linuxlingo.shell.ShellSession;
 import linuxlingo.shell.vfs.FileNode;
+import linuxlingo.shell.vfs.RegularFile;
 import linuxlingo.shell.vfs.VfsException;
 
 /**
@@ -25,32 +26,78 @@ public class FindCommand implements Command {
             return CommandResult.error("find: " + getUsage());
         }
 
-        // ===== v1.0 implementation =====
         String path = args[0];
+        String namePattern = "*";
+        String typeFilter = null;
+        String sizeFilter = null;
 
-        if (args.length != 3 || !args[1].equals("-name")) {
-            return CommandResult.error("find: " + getUsage());
+        for (int i = 1; i < args.length; i++) {
+            switch (args[i]) {
+            case "-name":
+                if (++i < args.length) {
+                    namePattern = args[i];
+                } else {
+                    return CommandResult.error("find: missing argument to '-name'");
+                }
+                break;
+            case "-type":
+                if (++i < args.length) {
+                    typeFilter = args[i];
+                    if (!typeFilter.equals("f") && !typeFilter.equals("d")) {
+                        return CommandResult.error("find: Unknown argument to -type: " + typeFilter);
+                    }
+                } else {
+                    return CommandResult.error("find: missing argument to '-type'");
+                }
+                break;
+            case "-size":
+                if (++i < args.length) {
+                    sizeFilter = args[i];
+                    if (!sizeFilter.matches("^[+-]?\\d+$")) {
+                        return CommandResult.error("find: Invalid size: " + sizeFilter);
+                    }
+                } else {
+                    return CommandResult.error("find: missing argument to `-size`");
+                }
+                break;
+            default:
+                return CommandResult.error("find: " + getUsage());
+            }
         }
-
-        String pattern = args[2];
 
         try {
             List<FileNode> matches = session.getVfs().findByName(
-                    path, session.getWorkingDir(), pattern);
+                    path, session.getWorkingDir(), namePattern);
             List<String> paths = new ArrayList<>();
+
             for (FileNode node : matches) {
+                if (typeFilter != null) {
+                    if (typeFilter.equals("f") && node.isDirectory()) {
+                        continue;
+                    }
+
+                    if (typeFilter.equals("d") && !node.isDirectory()) {
+                        continue;
+                    }
+                }
+
+                if (sizeFilter != null && !node.isDirectory()) {
+                    if (!matchesSize(sizeFilter, ((RegularFile) node).getSize())) {
+                        continue;
+                    }
+                }
+
                 paths.add(node.getAbsolutePath());
             }
+
+            if (paths.isEmpty()) {
+                return CommandResult.error("find: '" + namePattern + "': No such file or directory");
+            }
+
             return CommandResult.success(String.join("\n", paths));
         } catch (VfsException e) {
             return CommandResult.error("find: " + e.getMessage());
         }
-        // ===== end v1.0 =====
-
-        // TODO [v2.0]: Extend argument parsing to support -type and -size options.
-        //  - Use a loop with switch-case over args[i] for "-name", "-type", "-size".
-        //  - After collecting matches from findByName, filter by typeFilter and
-        //    sizeFilter using matchesSize() helper.
     }
 
     /**
@@ -62,12 +109,17 @@ public class FindCommand implements Command {
      * @return true if the file size matches the filter condition
      */
     private boolean matchesSize(String sizeFilter, int fileSize) {
-        // TODO [v2.0]: Implement size matching logic.
-        //  - "+N" means fileSize > N
-        //  - "-N" means fileSize < N
-        //  - "N"  means fileSize == N
-        //  - Return false on NumberFormatException.
-        return false;
+        try {
+            if (sizeFilter.startsWith("+")) {
+                return fileSize > Integer.parseInt(sizeFilter.substring(1));
+            } else if (sizeFilter.startsWith("-")) {
+                return fileSize < Integer.parseInt(sizeFilter.substring(1));
+            } else {
+                return fileSize == Integer.parseInt(sizeFilter);
+            }
+        } catch (NumberFormatException e) {
+            return false;
+        }
     }
 
     @Override

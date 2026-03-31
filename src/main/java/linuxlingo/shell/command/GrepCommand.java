@@ -2,7 +2,9 @@ package linuxlingo.shell.command;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import linuxlingo.shell.CommandResult;
 import linuxlingo.shell.ShellSession;
@@ -20,13 +22,13 @@ import linuxlingo.shell.vfs.VfsException;
 public class GrepCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
-        // ===== v1.0 implementation =====
         boolean ignoreCase = false;
         boolean showLineNumbers = false;
         boolean countOnly = false;
         boolean invertMatch = false;
+        boolean useRegex = false;
 
-        String pattern = null;
+        String patternStr = null;
         String file = null;
 
         for (String arg : args) {
@@ -38,22 +40,20 @@ public class GrepCommand implements Command {
                 countOnly = true;
             } else if (arg.equals("-v")) {
                 invertMatch = true;
+            } else if (arg.equals("-E")) {
+                useRegex = true;
             } else if (!arg.startsWith("-")) {
-                if (pattern == null) {
-                    pattern = arg;
+                if (patternStr == null) {
+                    patternStr = arg;
                 } else if (file == null) {
                     file = arg;
                 }
             } else {
-                // TODO [v2.0]: Recognise "-E" flag here to enable regex mode.
-                //  - Set a useRegex boolean flag.
-                //  - Later, compile the pattern with Pattern.compile() and use
-                //    regexPattern.matcher(line).find() instead of String.contains().
                 return CommandResult.error("grep: " + getUsage());
             }
         }
 
-        if (pattern == null) {
+        if (patternStr == null) {
             return CommandResult.error("grep: missing pattern");
         }
 
@@ -74,20 +74,38 @@ public class GrepCommand implements Command {
             return CommandResult.success(countOnly ? "0" : "");
         }
 
+        Pattern patternRegex = null;
+        if (useRegex) {
+            try {
+                int flags = ignoreCase ? Pattern.CASE_INSENSITIVE : 0;
+                patternRegex = Pattern.compile(patternStr, flags);
+            } catch (PatternSyntaxException e) {
+                return CommandResult.error("grep: invalid regular expression");
+            }
+        } else {
+            patternStr = ignoreCase ? patternStr.toLowerCase() : patternStr;
+        }
+
         String[] linesArray = content.split("\n");
         List<String> results = new ArrayList<>();
         int count = 0;
 
-        String searchPattern = ignoreCase ? pattern.toLowerCase() : pattern;
-
         for (int i = 0; i < linesArray.length; i++) {
             String line = linesArray[i];
-            String searchLine = ignoreCase ? line.toLowerCase() : line;
+            boolean matches;
 
-            boolean matches = searchLine.contains(searchPattern);
+            if (useRegex) {
+                Matcher matcher = patternRegex.matcher(line);
+                matches = matcher.find();
+            } else {
+                String searchLine = ignoreCase ? line.toLowerCase() : line;
+                matches = searchLine.contains(patternStr);
+            }
+
             if (invertMatch) {
                 matches = !matches;
             }
+
             if (matches) {
                 count++;
                 if (countOnly) {
@@ -111,7 +129,6 @@ public class GrepCommand implements Command {
         }
 
         return CommandResult.success(String.join("\n", results));
-        // ===== end v1.0 =====
     }
 
     @Override

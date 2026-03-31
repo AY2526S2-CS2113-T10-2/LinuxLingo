@@ -1,5 +1,7 @@
 package linuxlingo.shell.command;
 
+import java.util.Arrays;
+
 import linuxlingo.shell.CommandResult;
 import linuxlingo.shell.ShellSession;
 
@@ -15,15 +17,22 @@ import linuxlingo.shell.ShellSession;
 public class EchoCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
-        // TODO [v2.0]: Parse -n flag from args to suppress trailing newline.
-        //  - Check if the first arg is "-n"; if so, set a noNewline flag
-        //    and collect remaining args as textArgs.
-        //  - Use the noNewline flag when constructing the output
-        //    (currently unused, but the flag should affect output behaviour).
+        boolean noNewline = false;
+        int startIndex = 0;
 
-        // ===== v1.0 implementation =====
-        return CommandResult.success(String.join(" ", args));
-        // ===== end v1.0 =====
+        if (args[0].equals("-n")) {
+            noNewline = true;
+            startIndex = 1;
+        }
+
+        String[] textArgs = Arrays.copyOfRange(args, startIndex, args.length);
+        String output = String.join(" ", textArgs);
+
+        if (!noNewline) {
+            output += "\n";
+        }
+
+        return CommandResult.success(output);
     }
 
     @Override
