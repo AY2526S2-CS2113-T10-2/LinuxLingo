@@ -9,10 +9,11 @@ import linuxlingo.shell.vfs.VfsException;
 
 /**
  * Displays the last N lines of a file (default 10).
- * Syntax: tail [-n N] &lt;file&gt;
+ * Syntax: tail [-n N] [-N] &lt;file&gt;
  *
  * <p><b>v1.0</b>: Single file support with -n flag.</p>
- * <p><b>v2.0 [TODO]</b>: Support multiple files with "==>" headers between outputs.</p>
+ * <p><b>v2.0</b>: Support multiple files with "==>" headers, legacy {@code -N} syntax,
+ * and {@code -n +N} to skip first N-1 lines.</p>
  *
  * <p><b>Owner: C</b></p>
  */
@@ -20,6 +21,7 @@ public class TailCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
         int n = 10;
+        boolean fromStart = false; // true for -n +N syntax
         List<String> files = new ArrayList<>();
 
         for (int i = 0; i < args.length; i++) {
@@ -28,14 +30,33 @@ public class TailCommand implements Command {
                     return CommandResult.error("tail: option requires an argument -- n");
                 }
 
-                try {
-                    n = Integer.parseInt(args[i + 1]);
-                    i++;
-                } catch (NumberFormatException e) {
-                    return CommandResult.error("tail: invalid number of lines: " + args[i + 1]);
-                }
+                String nArg = args[i + 1];
+                i++;
 
-                if (n < 0) {
+                if (nArg.startsWith("+")) {
+                    // -n +N: output starting from line N
+                    fromStart = true;
+                    try {
+                        n = Integer.parseInt(nArg.substring(1));
+                    } catch (NumberFormatException e) {
+                        return CommandResult.error("tail: invalid number of lines: " + nArg);
+                    }
+                } else {
+                    try {
+                        n = Integer.parseInt(nArg);
+                    } catch (NumberFormatException e) {
+                        return CommandResult.error("tail: invalid number of lines: " + nArg);
+                    }
+
+                    if (n < 0) {
+                        return CommandResult.error("tail: invalid number of lines: " + nArg);
+                    }
+                }
+            } else if (args[i].matches("-\\d+")) {
+                // Legacy -N syntax: -5 means -n 5
+                try {
+                    n = Integer.parseInt(args[i].substring(1));
+                } catch (NumberFormatException e) {
                     return CommandResult.error("tail: invalid number of lines: " + args[i]);
                 }
             } else {
@@ -60,13 +81,21 @@ public class TailCommand implements Command {
                         }
                         output.add("==> " + files.get(i) + " <==");
                     }
-                    appendTailLines(output, content, n);
+                    if (fromStart) {
+                        appendTailFromStart(output, content, n);
+                    } else {
+                        appendTailLines(output, content, n);
+                    }
                 } catch (VfsException e) {
                     return CommandResult.error("tail: " + e.getMessage());
                 }
             }
         } else {
-            appendTailLines(output, stdin, n);
+            if (fromStart) {
+                appendTailFromStart(output, stdin, n);
+            } else {
+                appendTailLines(output, stdin, n);
+            }
         }
 
         return CommandResult.success(String.join("\n", output));
@@ -85,9 +114,29 @@ public class TailCommand implements Command {
         }
     }
 
+    /**
+     * Appends lines starting from line N (1-indexed), skipping the first N-1 lines.
+     *
+     * @param output  the output list
+     * @param content the file content
+     * @param n       the starting line number (1-indexed)
+     */
+    private void appendTailFromStart(List<String> output, String content, int n) {
+        if (content.isEmpty()) {
+            return;
+        }
+
+        String[] linesArray = content.split("\n", -1);
+        int start = Math.max(0, n - 1);
+
+        for (int i = start; i < linesArray.length; i++) {
+            output.add(linesArray[i]);
+        }
+    }
+
     @Override
     public String getUsage() {
-        return "tail [-n N] <file> [file2...]";
+        return "tail [-n N] [-N] <file> [file2...]";
     }
 
     @Override

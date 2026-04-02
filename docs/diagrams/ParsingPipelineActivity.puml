@@ -1,0 +1,20 @@
+@startuml ParsingPipelineActivity
+start
+:Receive raw input string;
+:Tokenize (char-by-char state machine);
+note right
+  States: NORMAL, IN_SINGLE_QUOTE, IN_DOUBLE_QUOTE
+  Recognizes: |, ||, >, >>, <, &&, ;
+end note
+:Split tokens into Segments;
+note right
+  Each Segment = commandName + args
+    + optional output redirect (>/>>)
+    + optional input redirect (<)
+  Operators (PIPE, AND, OR, SEMICOLON)
+    separate segments
+end note
+:Build ParsedPlan;
+:Return ParsedPlan(segments, operators);
+stop
+@enduml

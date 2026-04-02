@@ -1,0 +1,12 @@
+@startuml ShellParserSequence
+hide footbox
+participant Caller
+participant ":ShellParser" as SP
+
+Caller -> SP : parse(input)
+SP -> SP : tokenize(input)
+note right : Char-by-char state machine.\nProduces a flat list of Tokens.
+SP -> SP : buildPlan(tokens)
+note right : Groups tokens into Segments\nseparated by operators.
+SP --> Caller : ParsedPlan
+@enduml

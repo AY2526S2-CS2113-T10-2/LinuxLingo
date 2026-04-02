@@ -1,0 +1,79 @@
+@startuml ShellClassDiagram
+skinparam classAttributeIconSize 0
+
+interface Command {
+    + execute(session, args, stdin) : CommandResult
+    + getUsage() : String
+    + getDescription() : String
+}
+
+class CommandResult {
+    - stdout : String
+    - stderr : String
+    - exitCode : int
+    - shouldExit : boolean
+    + {static} success(stdout) : CommandResult
+    + {static} error(stderr) : CommandResult
+    + {static} exit() : CommandResult
+}
+
+class ShellParser {
+    + parse(input) : ParsedPlan
+    - tokenize(input) : List<Token>
+    - buildPlan(tokens) : ParsedPlan
+}
+
+class "ShellParser.ParsedPlan" as ParsedPlan {
+    + segments : List<Segment>
+    + operators : List<TokenType>
+}
+
+class "ShellParser.Segment" as Segment {
+    + commandName : String
+    + args : String[]
+    + redirect : RedirectInfo
+    + inputRedirect : String
+}
+
+class ShellSession {
+    - vfs : VirtualFileSystem
+    - workingDir : String
+    - previousDir : String
+    - lastExitCode : int
+    - registry : CommandRegistry
+    - aliases : Map<String, String>
+    - commandHistory : List<String>
+    - lineReader : ShellLineReader
+    + start()
+    + startInteractive()
+    + executeOnce(input) : CommandResult
+    - runPlan(input) : CommandResult
+    + expandGlobs(args) : String[]
+    + expandVariables(args) : String[]
+    + expandCombinedFlags(args) : String[]
+    + suggestCommand(input) : String
+}
+
+class CommandRegistry {
+    - commands : Map<String, Command>
+    + register(name, cmd)
+    + get(name) : Command
+    + getAllNames() : Set<String>
+    + getHelpText() : Map<String, String>
+}
+
+ShellSession --> ShellParser : creates
+ShellSession --> CommandRegistry : looks up commands
+ShellSession --> VirtualFileSystem : operates on
+ShellParser ..> ParsedPlan : creates
+ParsedPlan *-- Segment
+CommandRegistry --> "*" Command : stores
+Command ..> CommandResult : returns
+
+class CdCommand implements Command
+class LsCommand implements Command
+class GrepCommand implements Command
+class AliasCommand implements Command
+note "32 more command\nimplementations..." as N1
+N1 .. CdCommand
+@enduml

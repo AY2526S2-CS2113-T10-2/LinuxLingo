@@ -71,7 +71,7 @@ public class WcCommand implements Command {
     }
 
     /**
-     * [v2.0 STUB] Handles wc output for multiple files, appending a "total" summary line.
+     * Handles wc output for multiple files, appending a "total" summary line.
      *
      * @param session    the shell session
      * @param files      list of file paths
@@ -83,42 +83,95 @@ public class WcCommand implements Command {
     private CommandResult handleMultipleFiles(ShellSession session, List<String> files,
                                               boolean countLines, boolean countWords,
                                               boolean countChars) {
-        List<String> output = new ArrayList<>();
+        List<int[]> allCounts = new ArrayList<>();
+        List<String> fileNames = new ArrayList<>();
         int totalLines = 0;
         int totalWords = 0;
         int totalChars = 0;
+        List<String> errors = new ArrayList<>();
 
         for (String file : files) {
             try {
                 String content = session.getVfs().readFile(file, session.getWorkingDir());
-                output.add(formatWcLine(content, file, countLines, countWords, countChars));
-
-                totalLines += content.isEmpty() ? 0 : content.split("\n", -1).length;
-                totalWords += content.isBlank() ? 0 : content.trim().split("\\s+").length;
-                totalChars += content.length();
+                int lines = content.isEmpty() ? 0 : content.split("\n", -1).length;
+                int words = content.isBlank() ? 0 : content.trim().split("\\s+").length;
+                int chars = content.length();
+                allCounts.add(new int[]{lines, words, chars});
+                fileNames.add(file);
+                totalLines += lines;
+                totalWords += words;
+                totalChars += chars;
             } catch (VfsException e) {
-                output.add("wc: " + e.getMessage());
+                errors.add("wc: " + e.getMessage());
             }
         }
 
-        List<String> totalParts = new ArrayList<>();
-        if (countLines) {
-            totalParts.add(String.valueOf(totalLines));
-        }
-        if (countWords) {
-            totalParts.add(String.valueOf(totalWords));
-        }
-        if (countChars) {
-            totalParts.add(String.valueOf(totalChars));
-        }
-        totalParts.add("total");
+        allCounts.add(new int[]{totalLines, totalWords, totalChars});
+        fileNames.add("total");
 
-        output.add(String.join(" ", totalParts));
+        int maxWidth = computeMaxWidth(allCounts, countLines, countWords, countChars);
+
+        List<String> output = new ArrayList<>(errors);
+        for (int i = 0; i < allCounts.size(); i++) {
+            int[] counts = allCounts.get(i);
+            output.add(formatWcLineAligned(counts[0], counts[1], counts[2],
+                    fileNames.get(i), countLines, countWords, countChars, maxWidth));
+        }
+
         return CommandResult.success(String.join("\n", output));
     }
 
     /**
-     * [v2.0 STUB] Formats a single wc output line for the given content and filename.
+     * Computes the max width needed for right-aligning numeric columns.
+     */
+    private int computeMaxWidth(List<int[]> allCounts,
+                                boolean countLines, boolean countWords, boolean countChars) {
+        int maxVal = 0;
+        for (int[] counts : allCounts) {
+            if (countLines) {
+                maxVal = Math.max(maxVal, counts[0]);
+            }
+            if (countWords) {
+                maxVal = Math.max(maxVal, counts[1]);
+            }
+            if (countChars) {
+                maxVal = Math.max(maxVal, counts[2]);
+            }
+        }
+        return Math.max(1, String.valueOf(maxVal).length());
+    }
+
+    /**
+     * Formats a single wc output line with right-aligned numeric columns.
+     */
+    private String formatWcLineAligned(int lines, int words, int chars, String fileName,
+                                       boolean countLines, boolean countWords,
+                                       boolean countChars, int width) {
+        StringBuilder sb = new StringBuilder();
+        if (countLines) {
+            sb.append(String.format("%" + width + "d", lines));
+        }
+        if (countWords) {
+            if (!sb.isEmpty()) {
+                sb.append(" ");
+            }
+            sb.append(String.format("%" + width + "d", words));
+        }
+        if (countChars) {
+            if (!sb.isEmpty()) {
+                sb.append(" ");
+            }
+            sb.append(String.format("%" + width + "d", chars));
+        }
+        if (fileName != null) {
+            sb.append(" ").append(fileName);
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Formats a single wc output line for the given content and filename.
+     * Used for single-file output with right-aligned columns.
      *
      * @param content    file content
      * @param fileName   file name (or null for stdin)
@@ -133,21 +186,21 @@ public class WcCommand implements Command {
         int words = content.isBlank() ? 0 : content.trim().split("\\s+").length;
         int chars = content.length();
 
-        List<String> output = new ArrayList<>();
+        // For single file, compute width based on its own values
+        int maxVal = 0;
         if (countLines) {
-            output.add(String.valueOf(lines));
+            maxVal = Math.max(maxVal, lines);
         }
         if (countWords) {
-            output.add(String.valueOf(words));
+            maxVal = Math.max(maxVal, words);
         }
         if (countChars) {
-            output.add(String.valueOf(chars));
+            maxVal = Math.max(maxVal, chars);
         }
-        if (fileName != null) {
-            output.add(fileName);
-        }
+        int width = Math.max(1, String.valueOf(maxVal).length());
 
-        return String.join(" ", output);
+        return formatWcLineAligned(lines, words, chars, fileName,
+                countLines, countWords, countChars, width);
     }
 
     @Override

@@ -10,6 +10,7 @@ import java.util.logging.Logger;
 
 import linuxlingo.cli.Ui;
 import linuxlingo.shell.command.Command;
+import linuxlingo.shell.vfs.Directory;
 import linuxlingo.shell.vfs.FileNode;
 import linuxlingo.shell.vfs.VirtualFileSystem;
 
@@ -307,7 +308,9 @@ public class ShellSession {
             // TODO v2.0 (Owner A): resolve alias before registry lookup
             String resolvedName = resolveAlias(segment.commandName);
 
-            String[] expandedArgs = expandGlobs(segment.args);
+            String[] expandedArgs = expandCombinedFlags(segment.args);
+            expandedArgs = expandGlobs(expandedArgs);
+            expandedArgs = expandVariables(expandedArgs);
 
             // v1.0: Look up command in registry (now uses resolved name)
             Command command = registry.get(resolvedName);
@@ -511,6 +514,46 @@ public class ShellSession {
     // ─── Glob expansion ─────────────────────────────────────────
 
     /**
+     * Expand combined single-character flags into separate flags.
+     * For example, {@code -la} becomes {@code -l, -a}.
+     * Skips arguments that are a single flag, numeric flags like {@code -5},
+     * or long-form flags.
+     *
+     * @param args the original arguments
+     * @return expanded arguments with combined flags split
+     */
+    public String[] expandCombinedFlags(String[] args) {
+        List<String> expanded = new ArrayList<>();
+        for (String arg : args) {
+            // Only expand if it starts with '-', has 3-4 chars (2-3 combined flags),
+            // doesn't start with '--', and all chars after '-' are letters.
+            // Longer args like -name, -type, -size are treated as single options.
+            if (arg.startsWith("-") && !arg.startsWith("--")
+                    && arg.length() > 2 && arg.length() <= 4
+                    && allLetters(arg.substring(1))) {
+                for (int i = 1; i < arg.length(); i++) {
+                    expanded.add("-" + arg.charAt(i));
+                }
+            } else {
+                expanded.add(arg);
+            }
+        }
+        return expanded.toArray(new String[0]);
+    }
+
+    /**
+     * Checks if all characters in the string are ASCII letters.
+     */
+    private boolean allLetters(String s) {
+        for (int i = 0; i < s.length(); i++) {
+            if (!Character.isLetter(s.charAt(i))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * Expand glob patterns (*, ?) in arguments against the VFS.
      *
      * <p>v2.0 stub — to be implemented by Member B.</p>
@@ -524,9 +567,13 @@ public class ShellSession {
     public String[] expandGlobs(String[] args) {
         List<String> expanded = new ArrayList<>();
         for (String arg : args) {
+            // Skip single-quoted tokens (marked with \0 prefix)
+            if (arg.startsWith("\0")) {
+                expanded.add(arg);
+                continue;
+            }
             boolean hasWildcard = arg.contains("*") || arg.contains("?");
-            boolean hasPathSeparator = arg.contains("/");
-            if (!hasWildcard || !hasPathSeparator) {
+            if (!hasWildcard) {
                 expanded.add(arg);
                 continue;
             }
@@ -556,22 +603,39 @@ public class ShellSession {
         int lastSlash = pattern.lastIndexOf('/');
         String directoryPart;
         String namePattern;
+        boolean isRelative;
 
         if (lastSlash < 0) {
             directoryPart = ".";
             namePattern = pattern;
+            isRelative = true;
         } else if (lastSlash == 0) {
             directoryPart = "/";
             namePattern = pattern.substring(1);
+            isRelative = false;
         } else {
             directoryPart = pattern.substring(0, lastSlash);
             namePattern = pattern.substring(lastSlash + 1);
+            isRelative = false;
         }
 
         try {
             List<String> matches = new ArrayList<>();
-            for (FileNode node : vfs.findByName(directoryPart, workingDir, namePattern)) {
-                matches.add(node.getAbsolutePath());
+            if (isRelative) {
+                // For patterns without a path separator (e.g. *.txt),
+                // only match immediate children of the current directory
+                FileNode dir = vfs.resolve(directoryPart, workingDir);
+                if (dir.isDirectory()) {
+                    for (FileNode child : ((Directory) dir).getChildren()) {
+                        if (VirtualFileSystem.matchesWildcard(namePattern, child.getName())) {
+                            matches.add(child.getName());
+                        }
+                    }
+                }
+            } else {
+                for (FileNode node : vfs.findByName(directoryPart, workingDir, namePattern)) {
+                    matches.add(node.getAbsolutePath());
+                }
             }
             Collections.sort(matches);
             return matches;
@@ -593,5 +657,93 @@ public class ShellSession {
             resolved = aliases.get(resolved);
         }
         return resolved;
+    }
+
+    // ─── Variable expansion ─────────────────────────────────────
+
+    /**
+     * Expand shell variables in arguments.
+     * Supports {@code $?}, {@code $USER}, {@code $HOME}, {@code $PWD}.
+     *
+     * @param args the original arguments
+     * @return arguments with variables expanded
+     */
+    public String[] expandVariables(String[] args) {
+        String[] expanded = new String[args.length];
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].startsWith("\0")) {
+                // Single-quoted token: strip marker, skip variable expansion
+                expanded[i] = args[i].substring(1);
+            } else {
+                expanded[i] = expandVariablesInString(args[i]);
+            }
+        }
+        return expanded;
+    }
+
+    /**
+     * Expand shell variables in a single string.
+     *
+     * @param input the input string
+     * @return the string with variables expanded
+     */
+    private String expandVariablesInString(String input) {
+        if (input == null || !input.contains("$")) {
+            return input;
+        }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < input.length(); i++) {
+            if (input.charAt(i) == '$' && i + 1 < input.length()) {
+                if (input.charAt(i + 1) == '?') {
+                    sb.append(lastExitCode);
+                    i++; // skip '?'
+                    continue;
+                }
+
+                // Try to read a variable name
+                int start = i + 1;
+                int end = start;
+                while (end < input.length()
+                        && (Character.isLetterOrDigit(input.charAt(end)) || input.charAt(end) == '_')) {
+                    end++;
+                }
+
+                if (end > start) {
+                    String varName = input.substring(start, end);
+                    String value = resolveVariable(varName);
+                    if (value != null) {
+                        sb.append(value);
+                    } else {
+                        sb.append('$').append(varName);
+                    }
+                    i = end - 1; // advance past variable name
+                } else {
+                    sb.append('$');
+                }
+            } else {
+                sb.append(input.charAt(i));
+            }
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Resolves a predefined variable name to its value.
+     *
+     * @param name the variable name (without $)
+     * @return the value, or null if not a recognized variable
+     */
+    private String resolveVariable(String name) {
+        switch (name) {
+        case "USER":
+            return "user";
+        case "HOME":
+            return "/home/user";
+        case "PWD":
+            return workingDir;
+        default:
+            return null;
+        }
     }
 }

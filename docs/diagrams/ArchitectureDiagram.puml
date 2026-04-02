@@ -1,0 +1,28 @@
+@startuml ArchitectureDiagram
+skinparam componentStyle rectangle
+skinparam packageStyle rectangle
+
+package "LinuxLingo" {
+    [LinuxLingo\n(Main)] as Main
+    [CLI] as CLI
+    [Shell] as Shell
+    [Exam] as Exam
+    [Storage] as Storage
+    [VFS] as VFS
+}
+
+Main --> CLI : creates
+Main --> Shell : creates
+Main --> Exam : creates
+Main --> Storage : uses
+
+CLI --> Shell : dispatches to
+CLI --> Exam : dispatches to
+
+Shell --> VFS : operates on
+Shell ..> Storage : (via VfsSerializer)
+Exam --> VFS : creates temp VFS
+Exam --> Shell : creates temp ShellSession\nfor PRAC questions
+Exam ..> Storage : reads question banks
+
+@enduml
