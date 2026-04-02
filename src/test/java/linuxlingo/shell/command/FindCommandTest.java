@@ -169,7 +169,7 @@ public class FindCommandTest {
     }
 
     @Test
-    public void find_sizeFilter_largeThan0_onlyNonEmpty() {
+    public void find_sizeFilterLargeThan0OnlyNonEmpty() {
         vfs.createFile("/tmp/nonempty.txt", "/");
         vfs.writeFile("/tmp/nonempty.txt", "/", "content", false);
         vfs.createFile("/tmp/emptyone.txt", "/");

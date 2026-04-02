@@ -106,7 +106,7 @@ public class TailCommandTest {
     }
 
     @Test
-    public void tail_dashNPlusN_fromLine3_showsFromLine3() {
+    public void tail_dashNPlusNFromLine3ShowsFromLine3() {
         vfs.createFile("/home/user/data10.txt", "/");
         vfs.writeFile("/home/user/data10.txt", "/", "1\n2\n3\n4\n5\n6\n7\n8\n9\n10", false);
         session.setWorkingDir("/home/user");
@@ -117,7 +117,7 @@ public class TailCommandTest {
     }
 
     @Test
-    public void tail_dashNPlusN_fromLine1_showsAll() {
+    public void tail_dashNPlusNFromLine1ShowsAll() {
         vfs.createFile("/home/user/data10.txt", "/");
         vfs.writeFile("/home/user/data10.txt", "/", "1\n2\n3\n4\n5\n6\n7\n8\n9\n10", false);
         session.setWorkingDir("/home/user");
@@ -128,7 +128,7 @@ public class TailCommandTest {
     }
 
     @Test
-    public void tail_dashNPlusN_fromLine10_showsLast() {
+    public void tail_dashNPlusNFromLine10ShowsLast() {
         vfs.createFile("/home/user/data10.txt", "/");
         vfs.writeFile("/home/user/data10.txt", "/", "1\n2\n3\n4\n5\n6\n7\n8\n9\n10", false);
         session.setWorkingDir("/home/user");

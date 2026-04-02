@@ -446,7 +446,7 @@ public class IntegrationTest {
     }
 
     @Test
-    void varExpansion_dollar_pwd_expandsToCurrentDir() {
+    void varExpansion_dollarPwdExpandsToCurrentDir() {
         session.executeOnce("cd /home/user");
         CommandResult result = session.executeOnce("echo $PWD");
         assertTrue(result.isSuccess());
@@ -454,7 +454,7 @@ public class IntegrationTest {
     }
 
     @Test
-    void varExpansion_dollar_home_expandsCorrectly() {
+    void varExpansion_dollarHomeExpandsCorrectly() {
         CommandResult result = session.executeOnce("echo $HOME");
         assertTrue(result.isSuccess());
         // Should expand to some home directory path
@@ -729,7 +729,7 @@ public class IntegrationTest {
     // ─── Variable Expansion in Commands ─────────────────────────
 
     @Test
-    void varExpansion_dollar_user_expandsCorrectly() {
+    void varExpansion_dollarUserExpandsCorrectly() {
         CommandResult result = session.executeOnce("echo $USER");
         assertTrue(result.isSuccess());
         assertFalse(result.getStdout().contains("$USER"),
@@ -737,7 +737,7 @@ public class IntegrationTest {
     }
 
     @Test
-    void varExpansion_exitCode_afterFailure_nonZero() {
+    void varExpansion_exitCodeAfterFailureNonZero() {
         session.executeOnce("cat /nonexistent");
         CommandResult result = session.executeOnce("echo $?");
         assertTrue(result.isSuccess());
@@ -806,7 +806,7 @@ public class IntegrationTest {
     // ─── Stress: 10K-Line File ──────────────────────────────────
 
     @Test
-    void stress_10kLineFile_processesCorrectly() {
+    void stress10kLineFileProcessesCorrectly() {
         StringBuilder content = new StringBuilder();
         for (int i = 1; i <= 10000; i++) {
             content.append("line ").append(i);
@@ -833,7 +833,7 @@ public class IntegrationTest {
     // ─── Stress: 200+ Sequential Commands ───────────────────────
 
     @Test
-    void stress_200SequentialCommands_allSucceed() {
+    void stress200SequentialCommandsAllSucceed() {
         session.executeOnce("mkdir /tmp/stress200");
         for (int i = 0; i < 200; i++) {
             CommandResult r = session.executeOnce("echo item" + i + " > /tmp/stress200/f" + i + ".txt");

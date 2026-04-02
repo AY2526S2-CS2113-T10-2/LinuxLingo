@@ -157,7 +157,7 @@ class ShellParserTest {
     }
 
     @Test
-    public void parse_inputRedirect_afterPipe_segmentHasInputFile() {
+    public void parse_inputRedirectAfterPipeSegmentHasInputFile() {
         ShellParser.ParsedPlan plan = parser.parse("sort < input.txt | head -n 5");
         assertEquals(2, plan.segments.size());
         assertEquals("input.txt", plan.segments.get(0).inputRedirect);
@@ -253,7 +253,7 @@ class ShellParserTest {
     }
 
     @Test
-    public void parse_tabSeparator_treated_as_whitespace() {
+    public void parse_tabSeparatorTreatedAsWhitespace() {
         ShellParser.ParsedPlan plan = parser.parse("echo\thello\tworld");
         assertEquals(1, plan.segments.size());
         assertEquals(2, plan.segments.get(0).args.length);
@@ -373,7 +373,7 @@ class ShellParserTest {
     }
 
     @Test
-    public void segment_toString_withRedirect_containsRedirectInfo() {
+    public void segment_toStringWithRedirectContainsRedirectInfo() {
         ShellParser.RedirectInfo ri = new ShellParser.RedirectInfo(">", "out.txt");
         ShellParser.Segment seg = new ShellParser.Segment("echo", new String[]{"hi"}, ri);
         String str = seg.toString();
@@ -381,7 +381,7 @@ class ShellParserTest {
     }
 
     @Test
-    public void segment_toString_withAppend_containsDoubleArrow() {
+    public void segment_toStringWithAppendContainsDoubleArrow() {
         ShellParser.RedirectInfo ri = new ShellParser.RedirectInfo(">>", "log.txt");
         ShellParser.Segment seg = new ShellParser.Segment("echo", new String[]{"msg"}, ri);
         String str = seg.toString();
@@ -389,7 +389,7 @@ class ShellParserTest {
     }
 
     @Test
-    public void segment_toString_withInputRedirect_containsLessThan() {
+    public void segment_toStringWithInputRedirectContainsLessThan() {
         ShellParser.Segment seg = new ShellParser.Segment("wc", new String[]{"-l"}, null, "data.txt");
         String str = seg.toString();
         assertTrue(str.contains("data.txt"), "toString with input redirect should contain file: " + str);
@@ -423,7 +423,7 @@ class ShellParserTest {
     }
 
     @Test
-    public void parsedPlan_emptyPlan_toString_returnsEmpty() {
+    public void parsedPlan_emptyPlanToStringReturnsEmpty() {
         ShellParser.ParsedPlan plan = parser.parse("");
         assertEquals("", plan.toString());
     }
@@ -431,7 +431,7 @@ class ShellParserTest {
     // ─── Trailing operator edge cases ─────────────────────────────
 
     @Test
-    public void parse_trailingPipe_lastSegmentMissing_handledGracefully() {
+    public void parse_trailingPipeLastSegmentMissingHandledGracefully() {
         // "ls |" — trailing pipe violates the parser invariant (operators=1, segments=1)
         // In assertions-enabled mode this triggers AssertionError; otherwise may succeed.
         try {

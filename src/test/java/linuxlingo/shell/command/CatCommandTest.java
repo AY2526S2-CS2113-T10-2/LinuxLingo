@@ -81,7 +81,7 @@ public class CatCommandTest {
     // ─── From CommandEnhancementV2Test: CatEnhancements ──────────
 
     @Test
-    public void cat_lineNumberFlag_showsNumbers_v2() {
+    public void cat_lineNumberFlagShowsNumbersV2() {
         vfs.createFile("/home/user/test.txt", "/");
         vfs.writeFile("/home/user/test.txt", "/", "line1\nline2\nline3", false);
         session.setWorkingDir("/home/user");
@@ -138,7 +138,7 @@ public class CatCommandTest {
     // ═══ Priority 2: CatCommand coverage improvements ═══
 
     @Test
-    public void cat_dashN_withPipedStdin_numbersLines() {
+    public void cat_dashNWithPipedStdinNumbersLines() {
         String[] args = {"-n"};
         CommandResult result = command.execute(session, args, "one\ntwo\nthree\n");
         assertTrue(result.isSuccess());

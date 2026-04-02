@@ -32,7 +32,7 @@ public class AliasCommandTest {
     }
 
     @Test
-    public void alias_noArgs_emptyAliases_returnsEmpty() {
+    public void alias_noArgsEmptyAliasesReturnsEmpty() {
         CommandResult result = command.execute(session, new String[]{}, null);
         assertTrue(result.isSuccess());
         assertEquals("", result.getStdout());
@@ -46,14 +46,14 @@ public class AliasCommandTest {
     }
 
     @Test
-    public void alias_setAlias_withQuotes_stripsQuotes() {
+    public void alias_setAliasWithQuotesStripsQuotes() {
         CommandResult result = command.execute(session, new String[]{"ll='ls -la'"}, null);
         assertTrue(result.isSuccess());
         assertEquals("ls -la", session.getAliases().get("ll"));
     }
 
     @Test
-    public void alias_noArgs_withAliases_listsThem() {
+    public void alias_noArgsWithAliasesListsThem() {
         session.getAliases().put("ll", "ls -la");
         session.getAliases().put("gs", "grep -i");
         CommandResult result = command.execute(session, new String[]{}, null);
@@ -63,7 +63,7 @@ public class AliasCommandTest {
     }
 
     @Test
-    public void alias_showSpecific_exists_showsIt() {
+    public void alias_showSpecificExistsShowsIt() {
         session.getAliases().put("ll", "ls -la");
         CommandResult result = command.execute(session, new String[]{"ll"}, null);
         assertTrue(result.isSuccess());
@@ -71,14 +71,14 @@ public class AliasCommandTest {
     }
 
     @Test
-    public void alias_showSpecific_notFound_returnsError() {
+    public void alias_showSpecificNotFoundReturnsError() {
         CommandResult result = command.execute(session, new String[]{"nonexistent"}, null);
         assertFalse(result.isSuccess());
         assertTrue(result.getStderr().contains("not found"));
     }
 
     @Test
-    public void alias_invalidFormat_noName_returnsError() {
+    public void alias_invalidFormatNoNameReturnsError() {
         CommandResult result = command.execute(session, new String[]{"=value"}, null);
         assertFalse(result.isSuccess());
     }

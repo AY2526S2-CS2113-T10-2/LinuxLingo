@@ -135,7 +135,7 @@ public class VfsSerializerTest {
     // ── Corrupt / malformed data tests ──
 
     @Test
-    public void deserialize_malformedLine_tooFewParts_isSkipped() {
+    public void deserialize_malformedLineTooFewPartsIsSkipped() {
         String text = "# Working Directory: /home\n"
                 + "DIR  | /\n"
                 + "DIR  | /home | rwxr-xr-x\n";

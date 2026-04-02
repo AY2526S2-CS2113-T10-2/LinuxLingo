@@ -348,13 +348,13 @@ class VirtualFileSystemTest {
     }
 
     @Test
-    void delete_nonExistentFile_withForce_doesNotThrow() {
+    void delete_nonExistentFileWithForceDoesNotThrow() {
         // force=true should swallow VfsException
         assertDoesNotThrow(() -> vfs.delete("/tmp/ghost.txt", "/", false, true));
     }
 
     @Test
-    void delete_nonExistentFile_withoutForce_throwsVfsException() {
+    void delete_nonExistentFileWithoutForceThrowsVfsException() {
         assertThrows(VfsException.class, () -> vfs.delete("/tmp/ghost.txt", "/", false, false));
     }
 
@@ -367,18 +367,18 @@ class VirtualFileSystemTest {
     // ─── createDirectory edge cases ───────────────────────────────
 
     @Test
-    void createDirectory_alreadyExists_withoutParents_throwsVfsException() {
+    void createDirectory_alreadyExistsWithoutParentsThrowsVfsException() {
         assertThrows(VfsException.class, () -> vfs.createDirectory("/tmp", "/", false));
     }
 
     @Test
-    void createDirectory_alreadyExists_withParents_returnsExisting() {
+    void createDirectory_alreadyExistsWithParentsReturnsExisting() {
         // Should not throw — -p semantics: no error if exists
         assertDoesNotThrow(() -> vfs.createDirectory("/tmp", "/", true));
     }
 
     @Test
-    void createDirectory_parentDoesNotExist_withoutParents_throwsVfsException() {
+    void createDirectory_parentDoesNotExistWithoutParentsThrowsVfsException() {
         assertThrows(VfsException.class, () -> vfs.createDirectory("/tmp/a/b/c", "/", false));
     }
 

@@ -128,7 +128,7 @@ public class MainParserTest {
     // ─── exec -e (environment flag) ──────────────────────────────
 
     @Test
-    public void run_execWithEnvFlag_nonExistentEnv_showsError() {
+    public void run_execWithEnvFlagNonExistentEnvShowsError() {
         MainParser parser = createParser("exec -e nonexistent_env_xyz \"ls\"\nexit\n");
         parser.run();
         String output = outStream.toString();

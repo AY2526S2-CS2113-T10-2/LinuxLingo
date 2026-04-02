@@ -469,7 +469,7 @@ public class QuestionParserTest {
     }
 
     @Test
-    public void parsePrac_invalidCheckpointFormat_noColon_isSkipped() throws Exception {
+    public void parsePrac_invalidCheckpointFormatNoColonIsSkipped() throws Exception {
         Path file = createTempFile(
                 "PRAC | EASY | Q. | badformat | | Explanation."
         );
@@ -478,7 +478,7 @@ public class QuestionParserTest {
     }
 
     @Test
-    public void parsePrac_invalidCheckpointFormat_colonAtStart_isSkipped() throws Exception {
+    public void parsePrac_invalidCheckpointFormatColonAtStartIsSkipped() throws Exception {
         Path file = createTempFile(
                 "PRAC | EASY | Q. | :DIR | | Explanation."
         );
@@ -489,7 +489,7 @@ public class QuestionParserTest {
     // ── parseSetupItem edge cases ──
 
     @Test
-    public void parsePrac_setupItem_invalidFormat_noColon_isIgnored() throws Exception {
+    public void parsePrac_setupItemInvalidFormatNoColonIsIgnored() throws Exception {
         Path file = createTempFile(
                 "PRAC | EASY | Q. | /tmp:DIR | INVALID_NO_COLON | Explanation."
         );
@@ -500,7 +500,7 @@ public class QuestionParserTest {
     }
 
     @Test
-    public void parsePrac_setupItem_unknownType_isIgnored() throws Exception {
+    public void parsePrac_setupItemUnknownTypeIsIgnored() throws Exception {
         Path file = createTempFile(
                 "PRAC | EASY | Q. | /tmp:DIR | UNKNOWN:/some/path | Explanation."
         );
@@ -511,7 +511,7 @@ public class QuestionParserTest {
     }
 
     @Test
-    public void parsePrac_setupItem_emptyPath_isIgnored() throws Exception {
+    public void parsePrac_setupItemEmptyPathIsIgnored() throws Exception {
         Path file = createTempFile(
                 "PRAC | EASY | Q. | /tmp:DIR | MKDIR:= | Explanation."
         );
@@ -522,7 +522,7 @@ public class QuestionParserTest {
     }
 
     @Test
-    public void parsePrac_setupItem_colonAtEnd_isIgnored() throws Exception {
+    public void parsePrac_setupItemColonAtEndIsIgnored() throws Exception {
         Path file = createTempFile(
                 "PRAC | EASY | Q. | /tmp:DIR | MKDIR: | Explanation."
         );
@@ -533,7 +533,7 @@ public class QuestionParserTest {
     }
 
     @Test
-    public void parsePrac_setupItem_emptySemicolonItems_areSkipped() throws Exception {
+    public void parsePrac_setupItemEmptySemicolonItemsAreSkipped() throws Exception {
         Path file = createTempFile(
                 "PRAC | EASY | Q. | /tmp:DIR | ;MKDIR:/home;; | Explanation."
         );

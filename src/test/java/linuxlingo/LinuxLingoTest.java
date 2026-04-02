@@ -60,14 +60,14 @@ public class LinuxLingoTest {
     // ─── exec one-shot mode ───────────────────────────────────────
 
     @Test
-    void oneShot_exec_echoHello_printsHello() {
+    void oneShot_execEchoHelloPrintsHello() {
         LinuxLingo.main(new String[]{"exec", "echo", "hello"});
         String out = outBytes.toString();
         assertTrue(out.contains("hello"), "exec echo hello should print hello, got: " + out);
     }
 
     @Test
-    void oneShot_exec_noArgs_printsMissingCommand() {
+    void oneShot_execNoArgsPrintsMissingCommand() {
         LinuxLingo.main(new String[]{"exec"});
         String out = outBytes.toString();
         assertTrue(out.contains("missing command"),
@@ -75,7 +75,7 @@ public class LinuxLingoTest {
     }
 
     @Test
-    void oneShot_exec_missingEnvName_printsMissingCommand() {
+    void oneShot_execMissingEnvNamePrintsMissingCommand() {
         // -e without enough args falls through to the normal path (cmdStart=1, args[1]="-e")
         // With only 2 args: exec -e  → cmdStart stays at 1, command becomes "-e"
         LinuxLingo.main(new String[]{"exec", "-e"});
@@ -85,7 +85,7 @@ public class LinuxLingoTest {
     }
 
     @Test
-    void oneShot_exec_withEnvFlag_nonExistentEnv_printsError() {
+    void oneShot_execWithEnvFlagNonExistentEnvPrintsError() {
         LinuxLingo.main(new String[]{"exec", "-e", "nonexistent_env_xyz", "ls"});
         String out = outBytes.toString();
         String err = errBytes.toString();
@@ -95,7 +95,7 @@ public class LinuxLingoTest {
     }
 
     @Test
-    void oneShot_exec_multiWordCommand_joinsWithSpace() {
+    void oneShot_execMultiWordCommandJoinsWithSpace() {
         LinuxLingo.main(new String[]{"exec", "echo", "hello", "world"});
         String out = outBytes.toString();
         assertTrue(out.contains("hello world"), "Should join multi-word command, got: " + out);
@@ -104,47 +104,47 @@ public class LinuxLingoTest {
     // ─── exam one-shot mode ───────────────────────────────────────
 
     @Test
-    void oneShot_exam_topicsFlag_listsTopicsOrEmpty() {
+    void oneShot_examTopicsFlagListsTopicsOrEmpty() {
         LinuxLingo.main(new String[]{"exam", "-topics"});
         // Should not throw; may output "No topics" or topic list
         assertTrue(true);
     }
 
     @Test
-    void oneShot_exam_randomFlag_doesNotCrash() {
+    void oneShot_examRandomFlagDoesNotCrash() {
         LinuxLingo.main(new String[]{"exam", "-random"});
         // Should not crash even if no questions loaded
         assertTrue(true);
     }
 
     @Test
-    void oneShot_exam_topicAndCount_doesNotCrash() {
+    void oneShot_examTopicAndCountDoesNotCrash() {
         LinuxLingo.main(new String[]{"exam", "-t", "navigation", "-n", "5"});
         // Should not crash even if no questions loaded
         assertTrue(true);
     }
 
     @Test
-    void oneShot_exam_topicFlag_doesNotCrash() {
+    void oneShot_examTopicFlagDoesNotCrash() {
         LinuxLingo.main(new String[]{"exam", "-t", "navigation"});
         assertTrue(true);
     }
 
     @Test
-    void oneShot_exam_invalidCount_doesNotCrash() {
+    void oneShot_examInvalidCountDoesNotCrash() {
         LinuxLingo.main(new String[]{"exam", "-n", "notanumber"});
         // Should swallow the NumberFormatException and fall back to startInteractive
         assertTrue(true);
     }
 
     @Test
-    void oneShot_exam_randomWithTopic_doesNotCrash() {
+    void oneShot_examRandomWithTopicDoesNotCrash() {
         LinuxLingo.main(new String[]{"exam", "-random", "-t", "navigation"});
         assertTrue(true);
     }
 
     @Test
-    void oneShot_exam_unknownArgs_fallsBackToInteractive() {
+    void oneShot_examUnknownArgsFallsBackToInteractive() {
         LinuxLingo.main(new String[]{"exam", "-unknown"});
         // Unknown flag is silently skipped; falls back to startInteractive
         assertTrue(true);
@@ -153,7 +153,7 @@ public class LinuxLingoTest {
     // ─── shell one-shot mode ──────────────────────────────────────
 
     @Test
-    void oneShot_shell_immediatlyReceivesExit_doesNotCrash() {
+    void oneShot_shellImmediatlyReceivesExitDoesNotCrash() {
         // Redirect stdin to "exit\n" so shell session terminates
         java.io.InputStream originalIn = System.in;
         System.setIn(new java.io.ByteArrayInputStream("exit\n".getBytes()));
@@ -186,7 +186,7 @@ public class LinuxLingoTest {
     // ─── exec stdout vs stderr routing ────────────────────────────
 
     @Test
-    void oneShot_exec_commandNotFound_printsNotFound() {
+    void oneShot_execCommandNotFoundPrintsNotFound() {
         LinuxLingo.main(new String[]{"exec", "notacommand123"});
         String out = outBytes.toString();
         // "command not found" goes to stdout via ui.println in ShellSession
@@ -195,7 +195,7 @@ public class LinuxLingoTest {
     }
 
     @Test
-    void oneShot_exec_ls_doesNotCrash() {
+    void oneShot_execLsDoesNotCrash() {
         LinuxLingo.main(new String[]{"exec", "ls"});
         // Default VFS has home/, tmp/, etc/ at root — no error
         String out = outBytes.toString();
@@ -203,7 +203,7 @@ public class LinuxLingoTest {
     }
 
     @Test
-    void oneShot_exec_pwd_returnsSlash() {
+    void oneShot_execPwdReturnsSlash() {
         LinuxLingo.main(new String[]{"exec", "pwd"});
         String out = outBytes.toString();
         assertTrue(out.contains("/"), "pwd should return /, got: " + out);

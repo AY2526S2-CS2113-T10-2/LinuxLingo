@@ -74,7 +74,7 @@ public class MvCommandTest {
     }
 
     @Test
-    public void mv_multiSource_destNotDir_returnsError() {
+    public void mv_multiSourceDestNotDirReturnsError() {
         vfs.createFile("/home/user/a.txt", "/");
         vfs.createFile("/home/user/b.txt", "/");
         vfs.createFile("/home/user/c.txt", "/");
@@ -87,7 +87,7 @@ public class MvCommandTest {
     }
 
     @Test
-    public void mv_twoArgs_rename_stillWorks() {
+    public void mv_twoArgsRenameStillWorks() {
         vfs.createFile("/home/user/old.txt", "/");
         session.setWorkingDir("/home/user");
 

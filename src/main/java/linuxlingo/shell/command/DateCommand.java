@@ -48,23 +48,57 @@ public class DateCommand implements Command {
                 i++;
                 char spec = format.charAt(i);
                 switch (spec) {
-                case 'Y': sb.append("yyyy"); break;
-                case 'm': sb.append("MM"); break;
-                case 'd': sb.append("dd"); break;
-                case 'H': sb.append("HH"); break;
-                case 'M': sb.append("mm"); break;
-                case 'S': sb.append("ss"); break;
-                case 'A': sb.append("EEEE"); break;
-                case 'a': sb.append("EEE"); break;
-                case 'B': sb.append("MMMM"); break;
-                case 'b': sb.append("MMM"); break;
-                case 'p': sb.append("a"); break;
-                case 'I': sb.append("hh"); break;
-                case 'j': sb.append("DDD"); break;
-                case 'Z': sb.append("z"); break;
-                case 'n': sb.append("\n"); break;
-                case 't': sb.append("\t"); break;
-                case '%': sb.append("'%'"); break;
+                case 'Y':
+                    sb.append("yyyy");
+                    break;
+                case 'm':
+                    sb.append("MM");
+                    break;
+                case 'd':
+                    sb.append("dd");
+                    break;
+                case 'H':
+                    sb.append("HH");
+                    break;
+                case 'M':
+                    sb.append("mm");
+                    break;
+                case 'S':
+                    sb.append("ss");
+                    break;
+                case 'A':
+                    sb.append("EEEE");
+                    break;
+                case 'a':
+                    sb.append("EEE");
+                    break;
+                case 'B':
+                    sb.append("MMMM");
+                    break;
+                case 'b':
+                    sb.append("MMM");
+                    break;
+                case 'p':
+                    sb.append("a");
+                    break;
+                case 'I':
+                    sb.append("hh");
+                    break;
+                case 'j':
+                    sb.append("DDD");
+                    break;
+                case 'Z':
+                    sb.append("z");
+                    break;
+                case 'n':
+                    sb.append("\n");
+                    break;
+                case 't':
+                    sb.append("\t");
+                    break;
+                case '%':
+                    sb.append("'%'");
+                    break;
                 default:
                     sb.append('%').append(spec);
                     break;

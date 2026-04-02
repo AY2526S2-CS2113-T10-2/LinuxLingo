@@ -22,10 +22,10 @@ import linuxlingo.shell.vfs.VirtualFileSystem;
  */
 @Timeout(value = 10, unit = TimeUnit.SECONDS)
 public class ExamSessionTest {
-    private ByteArrayOutputStream outStream;
-
     @TempDir
     Path tempDir;
+
+    private ByteArrayOutputStream outStream;
 
     private ExamSession createSession(String input, QuestionBank bank) {
         outStream = new ByteArrayOutputStream();
@@ -301,7 +301,7 @@ public class ExamSessionTest {
     }
 
     @Test
-    public void startWithArgs_pracQuestion_userDone_checksVfs() throws Exception {
+    public void startWithArgs_pracQuestionUserDoneChecksVfs() throws Exception {
         QuestionBank bank = createBankWithPracQuestions();
         // User creates the expected directory then types "done"
         ExamSession session = createSession("mkdir /testdir\ndone\n", bank);
@@ -312,7 +312,7 @@ public class ExamSessionTest {
     }
 
     @Test
-    public void startWithArgs_pracQuestion_wrongAnswer_showsIncorrect() throws Exception {
+    public void startWithArgs_pracQuestionWrongAnswerShowsIncorrect() throws Exception {
         QuestionBank bank = createBankWithPracQuestions();
         // User just types "done" without doing anything
         ExamSession session = createSession("done\n", bank);
@@ -327,7 +327,8 @@ public class ExamSessionTest {
         Files.createDirectories(questionsDir);
         Path pracFile = questionsDir.resolve("practical.txt");
         Files.writeString(pracFile,
-                "PRAC | EASY | Create a directory named testdir at root | /testdir:DIR | | Use mkdir to create directories.\n"
+                "PRAC | EASY | Create a directory named testdir at root"
+                        + " | /testdir:DIR | | Use mkdir to create directories.\n"
         );
         QuestionBank bank = new QuestionBank();
         bank.load(questionsDir);

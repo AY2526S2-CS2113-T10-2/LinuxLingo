@@ -78,7 +78,7 @@ public class CpCommandTest {
     }
 
     @Test
-    public void cp_multiSource_destNotDir_returnsError() {
+    public void cp_multiSourceDestNotDirReturnsError() {
         vfs.createFile("/home/user/a.txt", "/");
         vfs.createFile("/home/user/b.txt", "/");
         vfs.createFile("/home/user/c.txt", "/");
@@ -112,7 +112,7 @@ public class CpCommandTest {
     }
 
     @Test
-    public void cp_selfCopy_sourceEqualsDestination_isNoOpOrError() {
+    public void cp_selfCopySourceEqualsDestinationIsNoOpOrError() {
         vfs.createFile("/same.txt", "/");
         vfs.writeFile("/same.txt", "/", "data", false);
         String[] args = {"same.txt", "same.txt"};

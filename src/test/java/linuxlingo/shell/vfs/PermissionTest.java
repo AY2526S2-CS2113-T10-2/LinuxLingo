@@ -30,25 +30,25 @@ public class PermissionTest {
     }
 
     @Test
-    public void fromOctal_755_returnsCorrect() {
+    public void fromOctal755ReturnsCorrect() {
         Permission perm = Permission.fromOctal("755");
         assertEquals("rwxr-xr-x", perm.toString());
     }
 
     @Test
-    public void fromOctal_644_returnsCorrect() {
+    public void fromOctal644ReturnsCorrect() {
         Permission perm = Permission.fromOctal("644");
         assertEquals("rw-r--r--", perm.toString());
     }
 
     @Test
-    public void fromOctal_000_returnsNoPerm() {
+    public void fromOctal000ReturnsNoPerm() {
         Permission perm = Permission.fromOctal("000");
         assertEquals("---------", perm.toString());
     }
 
     @Test
-    public void fromOctal_777_returnsAllPerm() {
+    public void fromOctal777ReturnsAllPerm() {
         Permission perm = Permission.fromOctal("777");
         assertEquals("rwxrwxrwx", perm.toString());
     }
@@ -64,13 +64,13 @@ public class PermissionTest {
     }
 
     @Test
-    public void toOctal_755_returnsCorrect() {
+    public void toOctal755ReturnsCorrect() {
         Permission perm = new Permission("rwxr-xr-x");
         assertEquals("755", perm.toOctal());
     }
 
     @Test
-    public void toOctal_644_returnsCorrect() {
+    public void toOctal644ReturnsCorrect() {
         Permission perm = new Permission("rw-r--r--");
         assertEquals("644", perm.toOctal());
     }
@@ -159,7 +159,7 @@ public class PermissionTest {
     // ─── fromOctal edge cases ─────────────────────────────────────
 
     @Test
-    public void fromOctal_100_ownerExecuteOnly() {
+    public void fromOctal100OwnerExecuteOnly() {
         Permission perm = Permission.fromOctal("100");
         assertTrue(perm.canOwnerExecute());
         assertFalse(perm.canOwnerRead());
@@ -167,7 +167,7 @@ public class PermissionTest {
     }
 
     @Test
-    public void fromOctal_222_writeOnlyAll() {
+    public void fromOctal222WriteOnlyAll() {
         Permission perm = Permission.fromOctal("222");
         // toString() returns 9-char: -w--w--w-
         assertEquals("-w--w--w-", perm.toString());
@@ -177,13 +177,13 @@ public class PermissionTest {
     }
 
     @Test
-    public void fromOctal_400_ownerReadOnly() {
+    public void fromOctal400OwnerReadOnly() {
         Permission perm = Permission.fromOctal("400");
         assertEquals("r--------", perm.toString());
     }
 
     @Test
-    public void fromOctal_500_ownerReadAndExecute() {
+    public void fromOctal500OwnerReadAndExecute() {
         Permission perm = Permission.fromOctal("500");
         assertEquals("r-x------", perm.toString());
     }
@@ -284,14 +284,14 @@ public class PermissionTest {
     }
 
     @Test
-    public void constructor_setuid_s_parsedAsTrue() {
+    public void constructor_setuidSParsedAsTrue() {
         // rwsrwxrwx — setuid bit 's' at owner execute
         Permission perm = new Permission("rwsrwxrwx");
         assertTrue(perm.canOwnerExecute(), "setuid 's' should set owner-execute bit");
     }
 
     @Test
-    public void constructor_setgid_s_parsedAsTrue() {
+    public void constructor_setgidSParsedAsTrue() {
         // rwxrwsrwx — setgid bit 's' at group execute
         Permission perm = new Permission("rwxrwsrwx");
         assertTrue(perm.canGroupExecute(), "setgid 's' should set group-execute bit");

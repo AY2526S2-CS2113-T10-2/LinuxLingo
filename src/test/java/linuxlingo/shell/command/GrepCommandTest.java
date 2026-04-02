@@ -159,7 +159,7 @@ public class GrepCommandTest {
     }
 
     @Test
-    public void grep_dashL_singleFile_returnsFilename() {
+    public void grep_dashLSingleFileReturnsFilename() {
         vfs.createFile("/home/user/a.txt", "/");
         vfs.writeFile("/home/user/a.txt", "/", "apple\nbanana", false);
         session.setWorkingDir("/home/user");
@@ -171,7 +171,7 @@ public class GrepCommandTest {
     }
 
     @Test
-    public void grep_dashL_noMatch_returnsError() {
+    public void grep_dashLNoMatchReturnsError() {
         vfs.createFile("/home/user/a.txt", "/");
         vfs.writeFile("/home/user/a.txt", "/", "apple", false);
         session.setWorkingDir("/home/user");
@@ -262,7 +262,7 @@ public class GrepCommandTest {
     // ═══ Priority 2: GrepCommand coverage improvements ═══
 
     @Test
-    public void grep_dashE_invalidRegex_returnsError() {
+    public void grep_dashEInvalidRegexReturnsError() {
         String[] args = {"-E", "[invalid", "data.txt"};
         CommandResult result = command.execute(session, args, null);
         assertFalse(result.isSuccess());
@@ -270,7 +270,7 @@ public class GrepCommandTest {
     }
 
     @Test
-    public void grep_dashE_validRegex_matchesPattern() {
+    public void grep_dashEValidRegexMatchesPattern() {
         String[] args = {"-E", "^[aA]", "data.txt"};
         CommandResult result = command.execute(session, args, null);
         assertTrue(result.isSuccess());
@@ -279,7 +279,7 @@ public class GrepCommandTest {
     }
 
     @Test
-    public void grep_dashE_caseInsensitive_matchesPattern() {
+    public void grep_dashECaseInsensitiveMatchesPattern() {
         String[] args = {"-E", "-i", "^a", "data.txt"};
         CommandResult result = command.execute(session, args, null);
         assertTrue(result.isSuccess());
@@ -304,7 +304,7 @@ public class GrepCommandTest {
     }
 
     @Test
-    public void grep_patternOnly_noFileNoStdin_returnsError() {
+    public void grep_patternOnlyNoFileNoStdinReturnsError() {
         String[] args = {"pattern"};
         CommandResult result = command.execute(session, args, null);
         assertFalse(result.isSuccess());
@@ -312,7 +312,7 @@ public class GrepCommandTest {
     }
 
     @Test
-    public void grep_multiFile_nonExistentFile_returnsError() {
+    public void grep_multiFileNonExistentFileReturnsError() {
         vfs.createFile("/a.txt", "/");
         vfs.writeFile("/a.txt", "/", "apple", false);
         String[] args = {"apple", "/a.txt", "/missing.txt"};

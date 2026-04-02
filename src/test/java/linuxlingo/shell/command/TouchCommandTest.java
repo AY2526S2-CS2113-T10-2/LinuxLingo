@@ -85,7 +85,7 @@ public class TouchCommandTest {
     }
 
     @Test
-    public void touch_nestedPath_parentNotExists_createsFile() {
+    public void touch_nestedPathParentNotExistsCreatesFile() {
         // Touch file in path that may not have all parents
         // This depends on VFS behavior - it might fail or auto-create
         CommandResult result = command.execute(session, new String[]{"/tmp/newdir/file.txt"}, null);

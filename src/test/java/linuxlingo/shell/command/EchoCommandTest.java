@@ -97,7 +97,7 @@ public class EchoCommandTest {
     }
 
     @Test
-    public void echo_dashE_unknownEscape_preservesBackslash() {
+    public void echo_dashEUnknownEscapePreservesBackslash() {
         String[] args = {"-e", "hello\\xworld"};
         CommandResult result = command.execute(session, args, null);
         assertTrue(result.isSuccess());
