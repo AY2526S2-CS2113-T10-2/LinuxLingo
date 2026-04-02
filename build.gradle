@@ -2,6 +2,7 @@ plugins {
     id 'java'
     id 'application'
     id 'checkstyle'
+    id 'jacoco'
     id 'com.github.johnrengelman.shadow' version '7.1.2'
 }
 
@@ -47,4 +48,23 @@ checkstyle {
 run{
     jvmArgs '-ea'
     standardInput = System.in
+}
+
+jacoco {
+    toolVersion = '0.8.11'
+}
+
+jacocoTestReport {
+    dependsOn test
+    reports {
+        xml.required = true
+        csv.required = true
+        html.required = true
+        html.outputLocation = layout.buildDirectory.dir('reports/jacoco/html')
+        csv.outputLocation = layout.buildDirectory.file('reports/jacoco/coverage.csv')
+    }
+}
+
+test {
+    finalizedBy jacocoTestReport
 }

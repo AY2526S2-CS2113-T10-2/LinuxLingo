@@ -19,3 +19,4 @@ text-ui-test/EXPECTED-UNIX.TXT
 .vscode/
 tmp/
 data/
+.playwright-mcp/
