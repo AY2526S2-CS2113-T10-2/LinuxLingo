@@ -1,0 +1,46 @@
+@startuml StorageClassDiagram
+skinparam classAttributeIconSize 0
+
+class Storage {
+    + {static} readFile(path) : String
+    + {static} readLines(path) : List<String>
+    + {static} writeFile(path, content)
+    + {static} exists(path) : boolean
+    + {static} delete(path) : boolean
+    + {static} listFiles(dir, ext) : List<Path>
+    + {static} ensureDirectory(dir)
+    + {static} getDataDir() : Path
+}
+
+class VfsSerializer {
+    + {static} serialize(vfs, workingDir) : String
+    + {static} deserialize(text) : DeserializedVfs
+    + {static} saveToFile(vfs, workingDir, name)
+    + {static} loadFromFile(name) : DeserializedVfs
+    + {static} listEnvironments() : List<String>
+    + {static} deleteEnvironment(name) : boolean
+}
+
+class "VfsSerializer.DeserializedVfs" as DV {
+    - vfs : VirtualFileSystem
+    - workingDir : String
+}
+
+class QuestionParser {
+    + {static} parseFile(path) : List<Question>
+    + {static} getTopicName(path) : String
+}
+
+class ResourceExtractor {
+    + {static} extractIfNeeded(dataDir)
+}
+
+class StorageException extends Exception
+
+VfsSerializer --> Storage : uses
+VfsSerializer ..> DV : creates
+QuestionParser --> Storage : uses
+ResourceExtractor --> Storage : uses
+VfsSerializer ..> StorageException : throws
+Storage ..> StorageException : throws
+@enduml

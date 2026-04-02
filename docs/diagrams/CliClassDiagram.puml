@@ -1,0 +1,29 @@
+@startuml CliClassDiagram
+class Ui {
+    - scanner : Scanner
+    - out : PrintStream
+    - err : PrintStream
+    + readLine() : String
+    + readLine(prompt) : String
+    + println(message)
+    + printError(message)
+    + printWelcome()
+    + clearScreen()
+    + confirm(prompt) : boolean
+}
+
+class MainParser {
+    - ui : Ui
+    - shellSession : ShellSession
+    - examSession : ExamSession
+    + run()
+    - parseAndExecute(input) : boolean
+    - handleExec(input)
+    - handleExam(parts)
+    - printHelp()
+}
+
+MainParser --> Ui : uses
+MainParser --> "1" ShellSession : dispatches to
+MainParser --> "1" ExamSession : dispatches to
+@enduml

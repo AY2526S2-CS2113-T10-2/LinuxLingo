@@ -1,0 +1,26 @@
+@startuml EchoGrepPipeSequence
+participant ":ShellSession" as SS
+participant ":ShellParser" as SP
+participant ":CommandRegistry" as CR
+participant ":EchoCommand" as Echo
+participant ":GrepCommand" as Grep
+participant ":VirtualFileSystem" as VFS
+
+SS -> SP : parse("echo hello | grep h > output.txt")
+SP --> SS : ParsedPlan{segments=[echo,grep], operators=[PIPE]}
+
+SS -> CR : get("echo")
+CR --> SS : EchoCommand
+SS -> Echo : execute(session, ["hello"], null)
+Echo --> SS : CommandResult{stdout="hello"}
+
+note over SS : Preceding operator is PIPE\nForward stdout as stdin
+
+SS -> CR : get("grep")
+CR --> SS : GrepCommand
+SS -> Grep : execute(session, ["h"], "hello")
+Grep --> SS : CommandResult{stdout="hello"}
+
+note over SS : Segment has redirect: > output.txt
+SS -> VFS : writeFile("output.txt", workingDir, "hello", false)
+@enduml

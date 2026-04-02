@@ -1,0 +1,27 @@
+@startuml ArchitectureSequenceDiagram
+actor User
+participant ":LinuxLingo" as Main
+participant ":MainParser" as MP
+participant ":Ui" as UI
+participant ":ShellSession" as SS
+
+Main -> UI : new Ui()
+Main -> SS : new ShellSession(vfs, ui)
+Main -> MP : new MainParser(ui, shellSession, examSession)
+Main -> MP : run()
+activate MP
+MP -> UI : printWelcome()
+MP -> UI : readLine("linuxlingo> ")
+UI --> MP : "shell"
+MP -> SS : start()
+activate SS
+SS -> UI : readLine(prompt)
+UI --> SS : user commands...
+SS -> UI : readLine(prompt)
+UI --> SS : "exit"
+deactivate SS
+MP -> UI : readLine("linuxlingo> ")
+UI --> MP : "exit"
+MP -> UI : println("Goodbye!")
+deactivate MP
+@enduml

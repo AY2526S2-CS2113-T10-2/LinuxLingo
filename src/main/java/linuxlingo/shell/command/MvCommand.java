@@ -9,7 +9,7 @@ import linuxlingo.shell.vfs.VfsException;
 
 /**
  * Moves or renames files or directories.
- * Syntax: mv &lt;src&gt; &lt;dest&gt;
+ * Syntax: mv &lt;src...&gt; &lt;dest&gt;
  *
  * <p><b>Owner: C</b></p>
  */
@@ -23,8 +23,25 @@ public class MvCommand implements Command {
             }
         }
 
-        if (paths.size() != 2) {
+        if (paths.size() < 2) {
             return CommandResult.error("mv: " + getUsage());
+        }
+
+        // Multi-source: if more than 2 paths, last must be an existing directory
+        if (paths.size() > 2) {
+            String dest = paths.get(paths.size() - 1);
+            if (!session.getVfs().exists(dest, session.getWorkingDir())
+                    || !session.getVfs().resolve(dest, session.getWorkingDir()).isDirectory()) {
+                return CommandResult.error("mv: target '" + dest + "' is not a directory");
+            }
+            for (int i = 0; i < paths.size() - 1; i++) {
+                try {
+                    session.getVfs().move(paths.get(i), dest, session.getWorkingDir());
+                } catch (VfsException e) {
+                    return CommandResult.error("mv: " + e.getMessage());
+                }
+            }
+            return CommandResult.success("");
         }
 
         try {
@@ -37,7 +54,7 @@ public class MvCommand implements Command {
 
     @Override
     public String getUsage() {
-        return "mv <src> <dest>";
+        return "mv <src...> <dest>";
     }
 
     @Override
