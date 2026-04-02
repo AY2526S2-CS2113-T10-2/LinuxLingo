@@ -3,7 +3,6 @@ package linuxlingo.shell.command;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -46,11 +45,13 @@ public class FindCommandTest {
 
     @Test
     public void findCommand_wrongArgsOrder_returnsError() {
+        // -name consumes "/tmp" as the name pattern, "*.txt" becomes path
+        // Since "*.txt" doesn't exist as a directory, find reports an error
         String[] args = {"-name", "/tmp", "*.txt"};
         CommandResult result = command.execute(session, args, null);
 
         assertFalse(result.isSuccess());
-        assertEquals("find: " + command.getUsage(), result.getStderr());
+        assertTrue(result.getStderr().startsWith("find:"));
     }
 
     @Test
@@ -87,5 +88,96 @@ public class FindCommandTest {
 
         assertTrue(result.isSuccess());
         assertEquals("/tmp/match.txt", result.getStdout());
+    }
+
+    // ─── From NewFeatureTest: FindDefaults ────────────────────
+
+    @Test
+    public void find_noPath_usesCurrentDir() {
+        vfs.createFile("/home/user/test.txt", "/");
+        session.setWorkingDir("/home/user");
+        String[] args = {"-name", "*.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("test.txt"));
+    }
+
+    @Test
+    public void find_noMatches_returnsEmptySuccess() {
+        session.setWorkingDir("/home/user");
+        String[] args = {"/home/user", "-name", "*.xyz"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertEquals("", result.getStdout());
+    }
+
+    @Test
+    public void find_noArgs_listsCurrentDir() {
+        vfs.createFile("/home/user/file1.txt", "/");
+        vfs.createFile("/home/user/file2.txt", "/");
+        session.setWorkingDir("/home/user");
+        String[] args = {};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("file1.txt"));
+        assertTrue(result.getStdout().contains("file2.txt"));
+    }
+
+    // ─── From CommandEnhancementV2Test: FindEnhancements ────────
+
+    @Test
+    public void find_typeFile_onlyFiles() {
+        vfs.createDirectory("/home/user/project", "/", true);
+        vfs.createFile("/home/user/project/app.java", "/");
+        vfs.createDirectory("/home/user/project/src", "/", true);
+        session.setWorkingDir("/home/user");
+        String[] args = {"/home/user/project", "-type", "f"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("app.java"));
+        assertFalse(result.getStdout().contains("src"));
+    }
+
+    // ─── Missing edge-case tests: -type d ─────────────────────────
+
+    @Test
+    public void find_typeDirectory_onlyDirectories() {
+        vfs.createDirectory("/home/user/proj", "/", true);
+        vfs.createFile("/home/user/proj/file.java", "/");
+        vfs.createDirectory("/home/user/proj/src", "/", true);
+        session.setWorkingDir("/home/user");
+        String[] args = {"/home/user/proj", "-type", "d"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("src"));
+        assertFalse(result.getStdout().contains("file.java"));
+    }
+
+    @Test
+    public void find_combinedTypeAndName_filtersCorrectly() {
+        vfs.createDirectory("/home/user/logs", "/", true);
+        vfs.createFile("/home/user/logs/error.log", "/");
+        vfs.createFile("/home/user/logs/access.log", "/");
+        vfs.createFile("/home/user/logs/readme.txt", "/");
+        session.setWorkingDir("/home/user");
+        String[] args = {"/home/user/logs", "-type", "f", "-name", "*.log"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("error.log"));
+        assertTrue(result.getStdout().contains("access.log"));
+        assertFalse(result.getStdout().contains("readme.txt"));
+    }
+
+    @Test
+    public void find_sizeFilter_largeThan0_onlyNonEmpty() {
+        vfs.createFile("/tmp/nonempty.txt", "/");
+        vfs.writeFile("/tmp/nonempty.txt", "/", "content", false);
+        vfs.createFile("/tmp/emptyone.txt", "/");
+        vfs.writeFile("/tmp/emptyone.txt", "/", "", false);
+        String[] args = {"/tmp", "-size", "+0"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("nonempty.txt"));
+        assertFalse(result.getStdout().contains("emptyone.txt"));
     }
 }

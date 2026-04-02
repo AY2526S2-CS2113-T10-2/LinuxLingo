@@ -10,7 +10,7 @@ import linuxlingo.shell.vfs.VirtualFileSystem;
  * Tests for v2.0 Checkpoint enhancements:
  * NOT_EXISTS, CONTENT_EQUALS, PERM check types.
  */
-public class CheckpointV2Test {
+public class CheckpointTest {
 
     @Test
     public void checkpoint_dirExists_passes() {

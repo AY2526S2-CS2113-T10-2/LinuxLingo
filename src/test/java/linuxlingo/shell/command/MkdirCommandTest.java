@@ -58,4 +58,47 @@ public class MkdirCommandTest {
         assertFalse(result.isSuccess());
         assertTrue(result.getStderr().contains("invalid option"));
     }
+
+    // ─── From CommandEnhancementV2Test: MkdirEnhancements ────────
+
+    @Test
+    public void mkdir_multipleWithParentFlag_createsNested() {
+        session.setWorkingDir("/home/user");
+        String[] args = {"-p", "a/b/c", "d/e"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(vfs.exists("/home/user/a/b/c", "/"));
+        assertTrue(vfs.exists("/home/user/d/e", "/"));
+    }
+
+    // ─── Missing edge-case tests ──────────────────────────────────
+
+    @Test
+    public void mkdir_existingDirWithoutP_returnsError() {
+        vfs.createDirectory("/tmp/existing", "/", false);
+        CommandResult result = command.execute(session, new String[]{"/tmp/existing"}, null);
+        assertFalse(result.isSuccess());
+        assertTrue(result.getStderr().contains("exists") || result.getStderr().contains("File exists"));
+    }
+
+    @Test
+    public void mkdir_existingDirWithP_succeeds() {
+        vfs.createDirectory("/tmp/existing", "/", false);
+        // -p should not error on existing directory
+        CommandResult result = command.execute(session, new String[]{"-p", "/tmp/existing"}, null);
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    public void mkdir_parentMissingWithoutP_returnsError() {
+        // /tmp/nope doesn't exist, so /tmp/nope/sub should fail without -p
+        CommandResult result = command.execute(session, new String[]{"/tmp/nope/sub"}, null);
+        assertFalse(result.isSuccess());
+    }
+
+    @Test
+    public void mkdir_noArgs_returnsError() {
+        CommandResult result = command.execute(session, new String[]{}, null);
+        assertFalse(result.isSuccess());
+    }
 }

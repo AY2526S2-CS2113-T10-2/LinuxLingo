@@ -3,7 +3,6 @@ package linuxlingo.shell.command;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -80,5 +79,148 @@ public class TailCommandTest {
 
         assertFalse(result.isSuccess());
         assertTrue(result.getStderr().contains("tail: invalid number of lines: "));
+    }
+
+    // ─── From NewFeatureTest: TailLegacySyntax ─────────────────
+
+    @Test
+    public void tail_legacyDash5_showsLast5Lines() {
+        vfs.createFile("/home/user/data10.txt", "/");
+        vfs.writeFile("/home/user/data10.txt", "/", "1\n2\n3\n4\n5\n6\n7\n8\n9\n10", false);
+        session.setWorkingDir("/home/user");
+        String[] args = {"-5", "data10.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertEquals("6\n7\n8\n9\n10", result.getStdout());
+    }
+
+    @Test
+    public void tail_legacyDash3_showsLast3Lines() {
+        vfs.createFile("/home/user/data10.txt", "/");
+        vfs.writeFile("/home/user/data10.txt", "/", "1\n2\n3\n4\n5\n6\n7\n8\n9\n10", false);
+        session.setWorkingDir("/home/user");
+        String[] args = {"-3", "data10.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertEquals("8\n9\n10", result.getStdout());
+    }
+
+    @Test
+    public void tail_dashNPlusN_fromLine3_showsFromLine3() {
+        vfs.createFile("/home/user/data10.txt", "/");
+        vfs.writeFile("/home/user/data10.txt", "/", "1\n2\n3\n4\n5\n6\n7\n8\n9\n10", false);
+        session.setWorkingDir("/home/user");
+        String[] args = {"-n", "+3", "data10.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertEquals("3\n4\n5\n6\n7\n8\n9\n10", result.getStdout());
+    }
+
+    @Test
+    public void tail_dashNPlusN_fromLine1_showsAll() {
+        vfs.createFile("/home/user/data10.txt", "/");
+        vfs.writeFile("/home/user/data10.txt", "/", "1\n2\n3\n4\n5\n6\n7\n8\n9\n10", false);
+        session.setWorkingDir("/home/user");
+        String[] args = {"-n", "+1", "data10.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertEquals("1\n2\n3\n4\n5\n6\n7\n8\n9\n10", result.getStdout());
+    }
+
+    @Test
+    public void tail_dashNPlusN_fromLine10_showsLast() {
+        vfs.createFile("/home/user/data10.txt", "/");
+        vfs.writeFile("/home/user/data10.txt", "/", "1\n2\n3\n4\n5\n6\n7\n8\n9\n10", false);
+        session.setWorkingDir("/home/user");
+        String[] args = {"-n", "+10", "data10.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertEquals("10", result.getStdout());
+    }
+
+    @Test
+    public void tail_standardDashN_stillWorks() {
+        vfs.createFile("/home/user/data10.txt", "/");
+        vfs.writeFile("/home/user/data10.txt", "/", "1\n2\n3\n4\n5\n6\n7\n8\n9\n10", false);
+        session.setWorkingDir("/home/user");
+        String[] args = {"-n", "3", "data10.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertEquals("8\n9\n10", result.getStdout());
+    }
+
+    // ─── Missing edge-case tests ──────────────────────────────────
+
+    @Test
+    public void tail_nonExistentFile_returnsError() {
+        String[] args = {"ghost.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertFalse(result.isSuccess());
+    }
+
+    @Test
+    public void tail_emptyFile_returnsEmptySuccess() {
+        vfs.createFile("/empty.txt", "/");
+        vfs.writeFile("/empty.txt", "/", "", false);
+        String[] args = {"empty.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertEquals("", result.getStdout());
+    }
+
+    @Test
+    public void tail_stdIn_returnsLastLinesFromPipe() {
+        String[] args = {"-n", "2"};
+        CommandResult result = command.execute(session, args, "a\nb\nc\nd");
+        assertTrue(result.isSuccess());
+        assertEquals("c\nd", result.getStdout());
+    }
+
+    @Test
+    public void tail_multipleFiles_headersShown() {
+        vfs.createFile("/tmp/a.txt", "/");
+        vfs.createFile("/tmp/b.txt", "/");
+        vfs.writeFile("/tmp/a.txt", "/", "line1\nline2", false);
+        vfs.writeFile("/tmp/b.txt", "/", "lineA\nlineB", false);
+        String[] args = {"/tmp/a.txt", "/tmp/b.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("a.txt") || result.getStdout().contains("==>"));
+    }
+
+    // ═══ Priority 2: TailCommand coverage improvements ═══
+
+    @Test
+    public void tail_plusNFromStdin_showsFromLine() {
+        String[] args = {"-n", "+2"};
+        CommandResult result = command.execute(session, args, "a\nb\nc\nd");
+        assertTrue(result.isSuccess());
+        assertEquals("b\nc\nd", result.getStdout());
+    }
+
+    @Test
+    public void tail_plusNInvalidNumber_returnsError() {
+        String[] args = {"-n", "+abc", "data.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertFalse(result.isSuccess());
+        assertTrue(result.getStderr().contains("invalid number"));
+    }
+
+    @Test
+    public void tail_noFileNoStdin_returnsError() {
+        String[] args = {};
+        CommandResult result = command.execute(session, args, null);
+        assertFalse(result.isSuccess());
+        assertTrue(result.getStderr().contains("missing file operand"));
+    }
+
+    @Test
+    public void tail_getUsage_containsTail() {
+        assertTrue(command.getUsage().contains("tail"));
+    }
+
+    @Test
+    public void tail_getDescription_notEmpty() {
+        assertFalse(command.getDescription().isEmpty());
     }
 }

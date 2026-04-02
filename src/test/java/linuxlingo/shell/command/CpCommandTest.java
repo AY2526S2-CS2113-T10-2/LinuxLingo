@@ -3,7 +3,6 @@ package linuxlingo.shell.command;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -58,5 +57,87 @@ public class CpCommandTest {
 
         assertFalse(result.isSuccess());
         assertEquals("cp: " + command.getUsage(), result.getStderr());
+    }
+
+    // ─── From NewFeatureTest: CpMultiSource ────────────────────
+
+    @Test
+    public void cp_multiSource_copiesToDirectory() {
+        vfs.createFile("/home/user/a.txt", "/");
+        vfs.writeFile("/home/user/a.txt", "/", "aaa", false);
+        vfs.createFile("/home/user/b.txt", "/");
+        vfs.writeFile("/home/user/b.txt", "/", "bbb", false);
+        vfs.createDirectory("/home/user/dest", "/", true);
+        session.setWorkingDir("/home/user");
+
+        String[] args = {"a.txt", "b.txt", "dest"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(vfs.exists("/home/user/dest/a.txt", "/"));
+        assertTrue(vfs.exists("/home/user/dest/b.txt", "/"));
+    }
+
+    @Test
+    public void cp_multiSource_destNotDir_returnsError() {
+        vfs.createFile("/home/user/a.txt", "/");
+        vfs.createFile("/home/user/b.txt", "/");
+        vfs.createFile("/home/user/c.txt", "/");
+        session.setWorkingDir("/home/user");
+
+        String[] args = {"a.txt", "b.txt", "c.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertFalse(result.isSuccess());
+        assertTrue(result.getStderr().contains("not a directory"));
+    }
+
+    @Test
+    public void cp_twoArgs_stillWorks() {
+        vfs.createFile("/home/user/src.txt", "/");
+        vfs.writeFile("/home/user/src.txt", "/", "content", false);
+        session.setWorkingDir("/home/user");
+
+        String[] args = {"src.txt", "dst.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(vfs.exists("/home/user/dst.txt", "/"));
+    }
+
+    // ─── Missing edge-case tests ──────────────────────────────────
+
+    @Test
+    public void cp_missingSource_returnsError() {
+        String[] args = {"ghost.txt", "dest.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertFalse(result.isSuccess());
+    }
+
+    @Test
+    public void cp_selfCopy_sourceEqualsDestination_isNoOpOrError() {
+        vfs.createFile("/same.txt", "/");
+        vfs.writeFile("/same.txt", "/", "data", false);
+        String[] args = {"same.txt", "same.txt"};
+        // After self-copy: original must still exist with same content
+        command.execute(session, args, null);
+        assertTrue(vfs.exists("/same.txt", "/"));
+        assertEquals("data", vfs.readFile("/same.txt", "/"));
+    }
+
+    @Test
+    public void cp_directoryWithoutRecursiveFlag_returnsError() {
+        vfs.createDirectory("/srcdir", "/", false);
+        String[] args = {"srcdir", "destdir"};
+        CommandResult result = command.execute(session, args, null);
+        assertFalse(result.isSuccess());
+    }
+
+    @Test
+    public void cp_fileToDirectory_copiesIntoDirectory() {
+        vfs.createFile("/myfile.txt", "/");
+        vfs.writeFile("/myfile.txt", "/", "hello", false);
+        vfs.createDirectory("/mydir", "/", false);
+        String[] args = {"myfile.txt", "mydir"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(vfs.exists("/mydir/myfile.txt", "/"));
     }
 }

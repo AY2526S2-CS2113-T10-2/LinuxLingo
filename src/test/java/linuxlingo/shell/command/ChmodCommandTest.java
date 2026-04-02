@@ -3,7 +3,6 @@ package linuxlingo.shell.command;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
@@ -67,5 +66,50 @@ public class ChmodCommandTest {
 
         assertFalse(result.isSuccess());
         assertTrue(result.getStderr().contains("chmod: invalid mode: "));
+    }
+
+    // ─── From NewFeatureTest: ChmodCommaSeparatedModes ────────────
+
+    @Test
+    public void chmod_commaSeparatedModes_appliesAll() {
+        vfs.createFile("/home/user/file.txt", "/");
+        session.setWorkingDir("/home/user");
+        String[] args = {"u+rwx,go-rwx", "/home/user/file.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(vfs.resolve("/home/user/file.txt", "/").getPermission().canOwnerExecute());
+    }
+
+    @Test
+    public void chmod_singleSymbolicMode_stillWorks() {
+        vfs.createFile("/home/user/file.txt", "/");
+        session.setWorkingDir("/home/user");
+        String[] args = {"u+x", "/home/user/file.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(vfs.resolve("/home/user/file.txt", "/").getPermission().canOwnerExecute());
+    }
+
+    @Test
+    public void chmod_invalidModeString_returnsError() {
+        vfs.createFile("/home/user/file.txt", "/");
+        session.setWorkingDir("/home/user");
+        String[] args = {"xyz", "/home/user/file.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertFalse(result.isSuccess());
+        assertTrue(result.getStderr().contains("invalid mode"));
+    }
+
+    // ─── From CommandEnhancementV2Test: ChmodEnhancements ────────
+
+    @Test
+    public void chmod_recursiveFlag_appliesRecursively() {
+        vfs.createDirectory("/home/user/project", "/", true);
+        vfs.createFile("/home/user/project/file.txt", "/");
+        session.setWorkingDir("/home/user");
+        String[] args = {"-R", "777", "/home/user/project"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertEquals("rwxrwxrwx", vfs.resolve("/home/user/project/file.txt", "/").getPermission().toString());
     }
 }

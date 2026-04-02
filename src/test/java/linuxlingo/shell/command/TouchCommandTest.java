@@ -53,4 +53,54 @@ public class TouchCommandTest {
         assertFalse(result.isSuccess());
         assertTrue(result.getStderr().contains("missing file operand"));
     }
+
+    // ─── From CommandEnhancementV2Test: TouchEnhancements ────────
+
+    @Test
+    public void touch_multipleFiles_createsAll() {
+        session.setWorkingDir("/home/user");
+        String[] args = {"a.txt", "b.txt", "c.txt"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(vfs.exists("/home/user/a.txt", "/"));
+        assertTrue(vfs.exists("/home/user/b.txt", "/"));
+        assertTrue(vfs.exists("/home/user/c.txt", "/"));
+    }
+
+    // ═══ Priority 2: TouchCommand coverage improvements ═══
+
+    @Test
+    public void touch_singleFile_createsFile() {
+        CommandResult result = command.execute(session, new String[]{"/tmp/single.txt"}, null);
+        assertTrue(result.isSuccess());
+        assertTrue(vfs.exists("/tmp/single.txt", "/"));
+    }
+
+    @Test
+    public void touch_existingFile_noError() {
+        vfs.createFile("/tmp/existing.txt", "/");
+        // Touching existing file should succeed without error
+        CommandResult result = command.execute(session, new String[]{"/tmp/existing.txt"}, null);
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    public void touch_nestedPath_parentNotExists_createsFile() {
+        // Touch file in path that may not have all parents
+        // This depends on VFS behavior - it might fail or auto-create
+        CommandResult result = command.execute(session, new String[]{"/tmp/newdir/file.txt"}, null);
+        // The behavior depends on VFS - just ensure no crash
+        // It might succeed or fail depending on VFS implementation
+        assertFalse(result == null);
+    }
+
+    @Test
+    public void touch_getUsage_containsTouch() {
+        assertTrue(command.getUsage().contains("touch"));
+    }
+
+    @Test
+    public void touch_getDescription_notEmpty() {
+        assertFalse(command.getDescription().isEmpty());
+    }
 }

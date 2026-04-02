@@ -128,4 +128,83 @@ public class LsCommandTest {
         assertTrue(result.getStdout().contains(".secret"));
         assertTrue(result.getStdout().contains(".nested"));
     }
+
+    // ─── From NewFeatureTest: LsEnhancedFormat ──────────────────
+
+    @Test
+    public void ls_multiDir_showsHeaders() {
+        vfs.createDirectory("/home/user/dir1", "/", true);
+        vfs.createDirectory("/home/user/dir2", "/", true);
+        vfs.createFile("/home/user/dir1/a.txt", "/");
+        vfs.createFile("/home/user/dir2/b.txt", "/");
+        session.setWorkingDir("/home/user");
+        String[] args = {"/home/user/dir1", "/home/user/dir2"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("/home/user/dir1:"));
+        assertTrue(result.getStdout().contains("/home/user/dir2:"));
+        assertTrue(result.getStdout().contains("a.txt"));
+        assertTrue(result.getStdout().contains("b.txt"));
+    }
+
+    @Test
+    public void ls_longFormat_showsTypePrefix() {
+        vfs.createDirectory("/home/user/dir1", "/", true);
+        session.setWorkingDir("/home/user");
+        String[] args = {"-l", "/home/user"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        String output = result.getStdout();
+        assertTrue(output.contains("drwx"));
+        assertTrue(output.contains("dir1/"));
+    }
+
+    @Test
+    public void ls_longFormat_showsOwnerGroup() {
+        vfs.createDirectory("/home/user/dir1", "/", true);
+        vfs.createFile("/home/user/dir1/a.txt", "/");
+        session.setWorkingDir("/home/user");
+        String[] args = {"-l", "/home/user/dir1"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("user user"));
+    }
+
+    @Test
+    public void ls_longFormat_showsLinkCount() {
+        vfs.createDirectory("/home/user/dir1", "/", true);
+        vfs.createFile("/home/user/dir1/a.txt", "/");
+        session.setWorkingDir("/home/user");
+        String[] args = {"-l", "/home/user/dir1"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        String output = result.getStdout();
+        assertTrue(output.contains("  1 user user"));
+    }
+
+    @Test
+    public void ls_singleDir_noHeader() {
+        vfs.createDirectory("/home/user/dir1", "/", true);
+        vfs.createFile("/home/user/dir1/a.txt", "/");
+        session.setWorkingDir("/home/user");
+        String[] args = {"/home/user/dir1"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertFalse(result.getStdout().contains(":"));
+        assertTrue(result.getStdout().contains("a.txt"));
+    }
+
+    // ─── From CommandEnhancementV2Test: LsEnhancements ──────────
+
+    @Test
+    public void ls_recursiveFlag_listsSubdirectories() {
+        vfs.createDirectory("/home/user/project", "/", true);
+        vfs.createDirectory("/home/user/project/src", "/", true);
+        vfs.createFile("/home/user/project/src/Main.java", "/");
+        session.setWorkingDir("/home/user");
+        String[] args = {"-R", "/home/user/project"};
+        CommandResult result = command.execute(session, args, null);
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("Main.java"));
+    }
 }

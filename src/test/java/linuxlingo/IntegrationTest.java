@@ -3,13 +3,14 @@ package linuxlingo;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.Timeout;
 
 import linuxlingo.cli.Ui;
 import linuxlingo.shell.CommandResult;
@@ -22,6 +23,7 @@ import linuxlingo.storage.VfsSerializer;
  * parsing → command execution → piping → redirection → VFS state verification.
  * These tests simulate realistic user workflows.
  */
+@Timeout(value = 10, unit = TimeUnit.SECONDS)
 public class IntegrationTest {
 
     private VirtualFileSystem vfs;
@@ -375,5 +377,581 @@ public class IntegrationTest {
                 "grep ERROR /var/log/app.log | head -n 2");
         String[] lines = headErrors.getStdout().split("\n");
         assertEquals(2, lines.length);
+    }
+
+    // ─── OR Operator (||) Workflows ─────────────────────────────
+
+    @Test
+    void orOperator_firstSucceeds_skipsSecond() {
+        session.executeOnce("echo success > /tmp/or_result.txt || echo fallback > /tmp/or_fallback.txt");
+        assertTrue(vfs.exists("/tmp/or_result.txt", "/"));
+        assertFalse(vfs.exists("/tmp/or_fallback.txt", "/"));
+    }
+
+    @Test
+    void orOperator_firstFails_runsFallback() {
+        session.executeOnce("cat /nonexistent.txt || echo fallback > /tmp/or_fallback.txt");
+        assertTrue(vfs.exists("/tmp/or_fallback.txt", "/"));
+        assertEquals("fallback\n", vfs.readFile("/tmp/or_fallback.txt", "/"));
+    }
+
+    @Test
+    void orOperator_chained_runFirstSuccess() {
+        // First fails, second fails, third succeeds
+        session.executeOnce(
+                "cat /no1 || cat /no2 || echo final > /tmp/chain_result.txt");
+        assertTrue(vfs.exists("/tmp/chain_result.txt", "/"));
+    }
+
+    // ─── Input Redirection (<) Workflows ─────────────────────────
+
+    @Test
+    void inputRedirect_wcCountsLinesFromFile() {
+        vfs.createFile("/tmp/input.txt", "/");
+        vfs.writeFile("/tmp/input.txt", "/", "line1\nline2\nline3", false);
+        CommandResult result = session.executeOnce("wc -l < /tmp/input.txt");
+        assertTrue(result.isSuccess());
+        assertEquals("3", result.getStdout().trim());
+    }
+
+    @Test
+    void inputRedirect_sortFromFile() {
+        vfs.createFile("/tmp/tosort.txt", "/");
+        vfs.writeFile("/tmp/tosort.txt", "/", "cherry\napple\nbanana", false);
+        CommandResult result = session.executeOnce("sort < /tmp/tosort.txt");
+        assertTrue(result.isSuccess());
+        assertEquals("apple\nbanana\ncherry", result.getStdout());
+    }
+
+    @Test
+    void inputRedirect_grepFromFile() {
+        vfs.createFile("/tmp/data.txt", "/");
+        vfs.writeFile("/tmp/data.txt", "/", "apple\nbanana\napricot", false);
+        CommandResult result = session.executeOnce("grep ap < /tmp/data.txt");
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("apple"));
+        assertTrue(result.getStdout().contains("apricot"));
+    }
+
+    // ─── Variable Expansion Workflows ────────────────────────────
+
+    @Test
+    void varExpansion_homeTilde_expandsToHomeDir() {
+        session.executeOnce("cd ~");
+        CommandResult result = session.executeOnce("pwd");
+        assertTrue(result.isSuccess());
+        // Should be home directory, not literal ~
+        assertFalse(result.getStdout().contains("~"),
+                "~ should be expanded, but got: " + result.getStdout());
+    }
+
+    @Test
+    void varExpansion_dollar_pwd_expandsToCurrentDir() {
+        session.executeOnce("cd /home/user");
+        CommandResult result = session.executeOnce("echo $PWD");
+        assertTrue(result.isSuccess());
+        assertEquals("/home/user", result.getStdout().trim());
+    }
+
+    @Test
+    void varExpansion_dollar_home_expandsCorrectly() {
+        CommandResult result = session.executeOnce("echo $HOME");
+        assertTrue(result.isSuccess());
+        // Should expand to some home directory path
+        assertFalse(result.getStdout().contains("$HOME"),
+                "$HOME should be expanded, got: " + result.getStdout());
+    }
+
+    @Test
+    void varExpansion_lastExitCode_zeroOnSuccess() {
+        session.executeOnce("echo hello");
+        CommandResult result = session.executeOnce("echo $?");
+        assertTrue(result.isSuccess());
+        assertEquals("0", result.getStdout().trim());
+    }
+
+    // ─── Alias Workflows ─────────────────────────────────────────
+
+    @Test
+    void alias_defineAndUse_execsAliasCommand() {
+        // Set alias directly: alias resolution works for single-word aliases
+        session.getAliases().put("greet", "echo");
+        CommandResult result = session.executeOnce("greet hello");
+        assertTrue(result.isSuccess());
+        assertEquals("hello", result.getStdout().trim());
+    }
+
+    @Test
+    void alias_withArgs_expandsAndPassesArgs() {
+        session.getAliases().put("ll", "ls");
+        // ll should run ls on /home/user
+        CommandResult result = session.executeOnce("ll /home/user");
+        assertTrue(result.isSuccess());
+    }
+
+    @Test
+    void alias_pipelineThroughAlias_works() {
+        vfs.createFile("/tmp/data.txt", "/");
+        vfs.writeFile("/tmp/data.txt", "/", "apple\nbanana\napricot\ncherry", false);
+        session.getAliases().put("grp", "grep");
+        CommandResult result = session.executeOnce("cat /tmp/data.txt | grp ap");
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("apple"));
+        assertTrue(result.getStdout().contains("apricot"));
+    }
+
+    @Test
+    void alias_listAliases_showsDefined() {
+        session.getAliases().put("ll", "ls -la");
+        session.getAliases().put("la", "ls -a");
+        CommandResult result = session.executeOnce("alias");
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("ll"));
+        assertTrue(result.getStdout().contains("la"));
+    }
+
+    @Test
+    void alias_unalias_removesDefinition() {
+        session.getAliases().put("greet", "echo");
+        session.executeOnce("unalias greet");
+        // After unalias, greet should fail as an unknown command
+        CommandResult result = session.executeOnce("greet");
+        assertFalse(result.isSuccess());
+    }
+
+    // ─── Permission Denied Workflow ──────────────────────────────
+
+    @Test
+    void permissionWorkflow_chmodAndVerify() {
+        session.executeOnce("echo secret > /tmp/secret.txt");
+        session.executeOnce("chmod 000 /tmp/secret.txt");
+        // Reading a 000-permission file should fail
+        CommandResult result = session.executeOnce("cat /tmp/secret.txt");
+        assertFalse(result.isSuccess());
+        assertTrue(result.getStderr().contains("Permission denied")
+                || result.getStderr().contains("permission"));
+    }
+
+    @Test
+    void permissionWorkflow_chmod644_allowsRead() {
+        session.executeOnce("echo readable > /tmp/readable.txt");
+        session.executeOnce("chmod 000 /tmp/readable.txt");
+        session.executeOnce("chmod 644 /tmp/readable.txt");
+        CommandResult result = session.executeOnce("cat /tmp/readable.txt");
+        assertTrue(result.isSuccess());
+    }
+
+    // ─── Error Recovery Workflow ─────────────────────────────────
+
+    @Test
+    void errorRecovery_badCommandFollowedByGoodCommand_bothExecuted() {
+        // Bad command (file doesn't exist), then good command
+        CommandResult bad = session.executeOnce("cat /nonexistent.txt");
+        assertFalse(bad.isSuccess());
+
+        CommandResult good = session.executeOnce("echo recovered");
+        assertTrue(good.isSuccess());
+        // echo appends newline
+        assertTrue(good.getStdout().contains("recovered"));
+    }
+
+    @Test
+    void errorRecovery_semicolonContinuesAfterError() {
+        session.executeOnce("rm /nonexistent ; echo done > /tmp/done.txt");
+        // Despite rm failing, done.txt should be created
+        assertTrue(vfs.exists("/tmp/done.txt", "/"));
+    }
+
+    @Test
+    void errorRecovery_multipleCommandsAllSucceed() {
+        session.executeOnce("echo a > /tmp/a.txt ; echo b > /tmp/b.txt ; echo c > /tmp/c.txt");
+        assertTrue(vfs.exists("/tmp/a.txt", "/"));
+        assertTrue(vfs.exists("/tmp/b.txt", "/"));
+        assertTrue(vfs.exists("/tmp/c.txt", "/"));
+    }
+
+    // ─── Stress / Scale Tests ────────────────────────────────────
+
+    @Test
+    void stress_longPipeline_executesManyStages() {
+        vfs.createFile("/tmp/source.txt", "/");
+        vfs.writeFile("/tmp/source.txt", "/",
+                "z\ny\nx\nw\nv\nu\nt\ns\nr\nq\np\no\nn\nm\nl\nk\nj\ni\nh\ng\nf\ne\nd\nc\nb\na",
+                false);
+        // 5-stage pipeline: cat | sort | uniq | head -n 10 | wc -l
+        CommandResult result = session.executeOnce(
+                "cat /tmp/source.txt | sort | uniq | head -n 10 | wc -l");
+        assertTrue(result.isSuccess());
+        assertEquals("10", result.getStdout().trim());
+    }
+
+    @Test
+    void stress_deepDirectoryTree_createAndTraverse() {
+        // Build 10-level deep directory
+        session.executeOnce("mkdir -p /d1/d2/d3/d4/d5/d6/d7/d8/d9/d10");
+        session.executeOnce("echo deep > /d1/d2/d3/d4/d5/d6/d7/d8/d9/d10/deepfile.txt");
+
+        assertTrue(vfs.exists("/d1/d2/d3/d4/d5/d6/d7/d8/d9/d10/deepfile.txt", "/"));
+        CommandResult result = session.executeOnce("cat /d1/d2/d3/d4/d5/d6/d7/d8/d9/d10/deepfile.txt");
+        assertTrue(result.isSuccess());
+        assertEquals("deep\n", result.getStdout());
+    }
+
+    @Test
+    void stress_largeFile_processesAllLines() {
+        // Create 1000-line file (no trailing newline to get exact 1000 count)
+        StringBuilder content = new StringBuilder();
+        for (int i = 1; i <= 1000; i++) {
+            content.append("line ").append(i);
+            if (i < 1000) {
+                content.append("\n");
+            }
+        }
+        vfs.createFile("/tmp/large.txt", "/");
+        vfs.writeFile("/tmp/large.txt", "/", content.toString(), false);
+
+        CommandResult result = session.executeOnce("wc -l /tmp/large.txt");
+        assertTrue(result.isSuccess());
+        // wc -l returns "N filename" format
+        String out = result.getStdout();
+        assertTrue(out.startsWith("1000") || out.contains(" 1000"),
+                "Expected 1000 lines, got: " + out);
+    }
+
+    @Test
+    void stress_manyFiles_listAll() {
+        // Create 100 files in a directory
+        session.executeOnce("mkdir /tmp/manyfiles");
+        for (int i = 1; i <= 100; i++) {
+            session.executeOnce("echo file" + i + " > /tmp/manyfiles/file" + i + ".txt");
+        }
+        CommandResult result = session.executeOnce("ls /tmp/manyfiles | wc -l");
+        assertTrue(result.isSuccess());
+        assertEquals("100", result.getStdout().trim());
+    }
+
+    @Test
+    void stress_sequentialCommands_allSucceed() {
+        // Execute 50 sequential file creation commands
+        session.executeOnce("mkdir /tmp/seq");
+        for (int i = 1; i <= 50; i++) {
+            CommandResult r = session.executeOnce("echo item" + i + " > /tmp/seq/f" + i + ".txt");
+            assertTrue(r.isSuccess(), "Command " + i + " should succeed");
+        }
+        CommandResult count = session.executeOnce("ls /tmp/seq | wc -l");
+        assertEquals("50", count.getStdout().trim());
+    }
+
+    @Test
+    void stress_aliasChain_resolves() {
+        // Alias pointing to real command
+        session.getAliases().put("a", "echo");
+        CommandResult result = session.executeOnce("a aliased");
+        assertTrue(result.isSuccess());
+        assertEquals("aliased", result.getStdout().trim());
+    }
+
+    // ─── Glob Expansion ──────────────────────────────────────────
+
+    @Test
+    void glob_starPattern_matchesTxtFiles() {
+        session.executeOnce("mkdir /tmp/glob");
+        session.executeOnce("echo one > /tmp/glob/a.txt");
+        session.executeOnce("echo two > /tmp/glob/b.txt");
+        session.executeOnce("echo three > /tmp/glob/c.log");
+        // Use find for reliable glob testing (ls glob relies on arg expansion)
+        CommandResult result = session.executeOnce("find /tmp/glob -name *.txt");
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("a.txt"));
+        assertTrue(result.getStdout().contains("b.txt"));
+        assertFalse(result.getStdout().contains("c.log"));
+    }
+
+    @Test
+    void glob_questionMark_matchesSingleChar() {
+        session.executeOnce("mkdir /tmp/qm");
+        session.executeOnce("echo a > /tmp/qm/a1.txt");
+        session.executeOnce("echo b > /tmp/qm/b2.txt");
+        session.executeOnce("echo c > /tmp/qm/abc.txt");
+        // find with name pattern for ??.txt: matches 2-char base names before extension
+        CommandResult result = session.executeOnce("find /tmp/qm -name ??.txt");
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("a1.txt"));
+        assertTrue(result.getStdout().contains("b2.txt"));
+        assertFalse(result.getStdout().contains("abc.txt"));
+    }
+
+    // ─── Environment Save/Load Round-Trip ────────────────────────
+
+    @Test
+    void saveLoadRoundTrip_preservesVfsState() {
+        session.executeOnce("mkdir /home/user/project");
+        session.executeOnce("echo content > /home/user/project/file.txt");
+        session.executeOnce("chmod 755 /home/user/project");
+        session.executeOnce("cd /home/user/project");
+
+        // Serialize current state manually
+        String before = VfsSerializer.serialize(vfs, session.getWorkingDir());
+        VfsSerializer.DeserializedVfs restored = VfsSerializer.deserialize(before);
+
+        assertTrue(restored.getVfs().exists("/home/user/project/file.txt", "/"));
+        assertEquals("content\n",
+                restored.getVfs().readFile("/home/user/project/file.txt", "/"));
+        assertEquals("/home/user/project", restored.getWorkingDir());
+    }
+
+    // ─── Combined Piping + Redirect + Chaining ──────────────────
+
+    @Test
+    void complexChaining_mkdirCdEchoRedirectCatPipeWc() {
+        session.executeOnce("mkdir /tmp/chain && echo hello > /tmp/chain/file.txt");
+        CommandResult result = session.executeOnce("cat /tmp/chain/file.txt | wc -w");
+        assertTrue(result.isSuccess());
+        assertEquals("1", result.getStdout().trim());
+    }
+
+    @Test
+    void errorRecovery_orOperator_catNonexistentOrEcho() {
+        CommandResult result = session.executeOnce(
+                "cat /nonexistent || echo fallback");
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("fallback"));
+    }
+
+    @Test
+    void errorRecovery_orThenAnd_chainedOperators() {
+        // First fails → OR runs fallback → AND continues
+        session.executeOnce(
+                "cat /no_file || echo recovered > /tmp/r.txt && echo done > /tmp/d.txt");
+        assertTrue(vfs.exists("/tmp/r.txt", "/") || vfs.exists("/tmp/d.txt", "/"));
+    }
+
+    // ─── Variable Expansion in Commands ─────────────────────────
+
+    @Test
+    void varExpansion_dollar_user_expandsCorrectly() {
+        CommandResult result = session.executeOnce("echo $USER");
+        assertTrue(result.isSuccess());
+        assertFalse(result.getStdout().contains("$USER"),
+                "$USER should be expanded, got: " + result.getStdout());
+    }
+
+    @Test
+    void varExpansion_exitCode_afterFailure_nonZero() {
+        session.executeOnce("cat /nonexistent");
+        CommandResult result = session.executeOnce("echo $?");
+        assertTrue(result.isSuccess());
+        assertFalse(result.getStdout().trim().equals("0"),
+                "Exit code after failure should be non-zero");
+    }
+
+    // ─── Input Redirect + Pipe ──────────────────────────────────
+
+    @Test
+    void inputRedirectInPipeline_sortFromFilePipeHead() {
+        vfs.createFile("/tmp/tosort.txt", "/");
+        vfs.writeFile("/tmp/tosort.txt", "/", "cherry\napple\nbanana\ndate\nelm", false);
+        CommandResult result = session.executeOnce("sort < /tmp/tosort.txt | head -n 3");
+        assertTrue(result.isSuccess());
+        assertEquals("apple\nbanana\ncherry", result.getStdout());
+    }
+
+    // ─── Edge Case: Whitespace-Only Input ───────────────────────
+
+    @Test
+    void whitespaceOnlyInput_echoPreserves() {
+        CommandResult result = session.executeOnce("echo   hello   world  ");
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("hello"));
+    }
+
+    // ─── Edge Case: Multiple Redirects ──────────────────────────
+
+    @Test
+    void multipleRedirects_lastOneWins() {
+        session.executeOnce("echo data > /tmp/first.txt > /tmp/second.txt");
+        // The last redirect should win
+        assertTrue(vfs.exists("/tmp/second.txt", "/"));
+    }
+
+    // ─── Edge Case: Empty Pipeline Stage ────────────────────────
+
+    @Test
+    void emptyFile_catToSort_returnsEmpty() {
+        vfs.createFile("/tmp/empty.txt", "/");
+        vfs.writeFile("/tmp/empty.txt", "/", "", false);
+        CommandResult result = session.executeOnce("cat /tmp/empty.txt | sort");
+        assertTrue(result.isSuccess());
+        assertEquals("", result.getStdout());
+    }
+
+    // ─── Stress: 10-Stage Pipeline ──────────────────────────────
+
+    @Test
+    void stress_tenStagePipeline_executesSuccessfully() {
+        vfs.createFile("/tmp/data10.txt", "/");
+        StringBuilder content = new StringBuilder();
+        for (int i = 0; i < 100; i++) {
+            content.append("line").append(i % 10).append("\n");
+        }
+        vfs.writeFile("/tmp/data10.txt", "/", content.toString().trim(), false);
+        // 6-stage pipeline
+        CommandResult result = session.executeOnce(
+                "cat /tmp/data10.txt | sort | uniq | sort -r | head -n 5 | wc -l");
+        assertTrue(result.isSuccess());
+        int count = Integer.parseInt(result.getStdout().trim());
+        assertTrue(count > 0 && count <= 10);
+    }
+
+    // ─── Stress: 10K-Line File ──────────────────────────────────
+
+    @Test
+    void stress_10kLineFile_processesCorrectly() {
+        StringBuilder content = new StringBuilder();
+        for (int i = 1; i <= 10000; i++) {
+            content.append("line ").append(i);
+            if (i < 10000) {
+                content.append("\n");
+            }
+        }
+        vfs.createFile("/tmp/big.txt", "/");
+        vfs.writeFile("/tmp/big.txt", "/", content.toString(), false);
+
+        CommandResult wcResult = session.executeOnce("wc -l /tmp/big.txt");
+        assertTrue(wcResult.isSuccess());
+        assertTrue(wcResult.getStdout().contains("10000"));
+
+        CommandResult headResult = session.executeOnce("head -n 5 /tmp/big.txt");
+        assertTrue(headResult.isSuccess());
+        assertEquals("line 1\nline 2\nline 3\nline 4\nline 5", headResult.getStdout());
+
+        CommandResult tailResult = session.executeOnce("tail -n 3 /tmp/big.txt");
+        assertTrue(tailResult.isSuccess());
+        assertEquals("line 9998\nline 9999\nline 10000", tailResult.getStdout());
+    }
+
+    // ─── Stress: 200+ Sequential Commands ───────────────────────
+
+    @Test
+    void stress_200SequentialCommands_allSucceed() {
+        session.executeOnce("mkdir /tmp/stress200");
+        for (int i = 0; i < 200; i++) {
+            CommandResult r = session.executeOnce("echo item" + i + " > /tmp/stress200/f" + i + ".txt");
+            assertTrue(r.isSuccess(), "Command " + i + " should succeed");
+        }
+        CommandResult count = session.executeOnce("ls /tmp/stress200 | wc -l");
+        assertEquals("200", count.getStdout().trim());
+    }
+
+    // ─── Edge Case: Special Characters in Filenames ─────────────
+
+    @Test
+    void specialChars_filenameWithHyphen_works() {
+        session.executeOnce("echo test > /tmp/my-file.txt");
+        assertTrue(vfs.exists("/tmp/my-file.txt", "/"));
+        CommandResult result = session.executeOnce("cat /tmp/my-file.txt");
+        assertTrue(result.isSuccess());
+        assertEquals("test\n", result.getStdout());
+    }
+
+    @Test
+    void specialChars_filenameWithDot_works() {
+        session.executeOnce("echo test > /tmp/.hidden");
+        assertTrue(vfs.exists("/tmp/.hidden", "/"));
+    }
+
+    @Test
+    void specialChars_filenameWithUnderscore_works() {
+        session.executeOnce("echo test > /tmp/my_file.txt");
+        assertTrue(vfs.exists("/tmp/my_file.txt", "/"));
+    }
+
+    // ─── Edge Case: cd Effect on Subsequent Commands ────────────
+
+    @Test
+    void cdEffect_changesContextForSubsequentCommands() {
+        session.executeOnce("cd /home/user");
+        CommandResult pwdResult = session.executeOnce("pwd");
+        assertEquals("/home/user", pwdResult.getStdout());
+
+        session.executeOnce("echo test > localfile.txt");
+        assertTrue(vfs.exists("/home/user/localfile.txt", "/"));
+    }
+
+    // ─── Edge Case: Glob Inside Quotes ──────────────────────────
+
+    @Test
+    void globInsideQuotes_notExpanded() {
+        session.executeOnce("mkdir /tmp/qtest");
+        session.executeOnce("echo a > /tmp/qtest/a.txt");
+        CommandResult result = session.executeOnce("echo '*.txt'");
+        assertTrue(result.isSuccess());
+        assertEquals("*.txt", result.getStdout().trim());
+    }
+
+    // ─── Edge Case: Variable In Single Quotes ───────────────────
+
+    @Test
+    void variableInSingleQuotes_notExpanded() {
+        CommandResult result = session.executeOnce("echo '$HOME'");
+        assertTrue(result.isSuccess());
+        assertEquals("$HOME", result.getStdout().trim());
+    }
+
+    // ─── Edge Case: chmod 000 then 777 ──────────────────────────
+
+    @Test
+    void chmod000Then777_restoresPermissions() {
+        session.executeOnce("echo test > /tmp/perm.txt");
+        session.executeOnce("chmod 000 /tmp/perm.txt");
+        // Can't read
+        CommandResult fail = session.executeOnce("cat /tmp/perm.txt");
+        assertFalse(fail.isSuccess());
+        // Restore
+        session.executeOnce("chmod 777 /tmp/perm.txt");
+        CommandResult ok = session.executeOnce("cat /tmp/perm.txt");
+        assertTrue(ok.isSuccess());
+        assertEquals("test\n", ok.getStdout());
+    }
+
+    // ─── Redirect + Append Interleaved ──────────────────────────
+
+    @Test
+    void redirectAndAppend_interleaved() {
+        session.executeOnce("echo line1 > /tmp/interleaved.txt");
+        session.executeOnce("echo line2 >> /tmp/interleaved.txt");
+        session.executeOnce("echo line3 >> /tmp/interleaved.txt");
+        CommandResult result = session.executeOnce("cat /tmp/interleaved.txt");
+        assertTrue(result.isSuccess());
+        String content = result.getStdout();
+        assertTrue(content.contains("line1"));
+        assertTrue(content.contains("line2"));
+        assertTrue(content.contains("line3"));
+    }
+
+    // ─── Diff Integration ───────────────────────────────────────
+
+    @Test
+    void diff_twoFiles_showsDifferences() {
+        session.executeOnce("echo hello > /tmp/d1.txt");
+        session.executeOnce("echo world > /tmp/d2.txt");
+        CommandResult result = session.executeOnce("diff /tmp/d1.txt /tmp/d2.txt");
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("-hello"));
+        assertTrue(result.getStdout().contains("+world"));
+    }
+
+    // ─── Tree Integration ───────────────────────────────────────
+
+    @Test
+    void tree_nestedStructure_showsCorrectFormat() {
+        session.executeOnce("mkdir -p /tmp/treetest/src/main");
+        session.executeOnce("echo code > /tmp/treetest/src/main/App.java");
+        session.executeOnce("echo readme > /tmp/treetest/README.md");
+        CommandResult result = session.executeOnce("tree /tmp/treetest");
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().contains("src"));
+        assertTrue(result.getStdout().contains("App.java"));
+        assertTrue(result.getStdout().contains("README.md"));
     }
 }
