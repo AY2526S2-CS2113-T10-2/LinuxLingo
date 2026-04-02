@@ -20,7 +20,7 @@ public class UiTest {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         Ui ui = new Ui(new ByteArrayInputStream(new byte[0]), new PrintStream(out));
         ui.println("hello");
-        assertEquals("hello\n", out.toString());
+        assertEquals("hello" + System.lineSeparator(), out.toString());
     }
 
     @Test
@@ -37,7 +37,7 @@ public class UiTest {
         ByteArrayOutputStream err = new ByteArrayOutputStream();
         Ui ui = new Ui(new ByteArrayInputStream(new byte[0]), new PrintStream(out), new PrintStream(err));
         ui.printError("oops");
-        assertEquals("oops\n", err.toString());
+        assertEquals("oops" + System.lineSeparator(), err.toString());
         assertEquals("", out.toString());
     }
 
