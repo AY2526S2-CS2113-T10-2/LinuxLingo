@@ -11,11 +11,12 @@ import linuxlingo.shell.ShellSession;
 import linuxlingo.shell.vfs.VfsException;
 
 /**
- * Searches for a pattern in a file.
- * Syntax: grep [-E] [-i] [-v] [-n] [-c] &lt;pattern&gt; &lt;file&gt;
+ * Searches for a pattern in one or more files.
+ * Syntax: grep [-E] [-i] [-v] [-n] [-c] [-l] &lt;pattern&gt; [file...]
  *
  * <p><b>v1.0</b>: Basic grep with -i, -v, -n, -c flags and literal string matching.</p>
- * <p><b>v2.0</b>: Adds {@code -E} flag for extended regex matching via {@link Pattern}.</p>
+ * <p><b>v2.0</b>: Adds {@code -E} flag for extended regex, {@code -l} flag for
+ * listing filenames only, and multi-file search with filename prefixes.</p>
  *
  * <p><b>Owner: C</b></p>
  */
@@ -27,9 +28,10 @@ public class GrepCommand implements Command {
         boolean countOnly = false;
         boolean invertMatch = false;
         boolean useRegex = false;
+        boolean listFilesOnly = false;
 
         String patternStr = null;
-        String file = null;
+        List<String> files = new ArrayList<>();
 
         for (String arg : args) {
             if (arg.equals("-i")) {
@@ -42,11 +44,13 @@ public class GrepCommand implements Command {
                 invertMatch = true;
             } else if (arg.equals("-E")) {
                 useRegex = true;
+            } else if (arg.equals("-l")) {
+                listFilesOnly = true;
             } else if (!arg.startsWith("-")) {
                 if (patternStr == null) {
                     patternStr = arg;
-                } else if (file == null) {
-                    file = arg;
+                } else {
+                    files.add(arg);
                 }
             } else {
                 return CommandResult.error("grep: " + getUsage());
@@ -57,24 +61,76 @@ public class GrepCommand implements Command {
             return CommandResult.error("grep: missing pattern");
         }
 
-        String content;
-        if (file != null) {
+        // Single file or stdin mode
+        if (files.isEmpty()) {
+            if (stdin == null) {
+                return CommandResult.error("grep: missing file operand");
+            }
+            return grepContent(stdin, null, patternStr, ignoreCase, showLineNumbers,
+                    countOnly, invertMatch, useRegex, listFilesOnly, false);
+        }
+
+        // Single file - no filename prefix
+        if (files.size() == 1) {
             try {
-                content = session.getVfs().readFile(file, session.getWorkingDir());
+                String content = session.getVfs().readFile(files.get(0), session.getWorkingDir());
+                return grepContent(content, files.get(0), patternStr, ignoreCase, showLineNumbers,
+                        countOnly, invertMatch, useRegex, listFilesOnly, false);
             } catch (VfsException e) {
                 return CommandResult.error("grep: " + e.getMessage());
             }
-        } else if (stdin != null) {
-            content = stdin;
-        } else {
-            return CommandResult.error("grep: missing file operand");
         }
 
+        // Multi-file mode - prefix each line with filename
+        List<String> allResults = new ArrayList<>();
+        boolean anyMatch = false;
+        for (String file : files) {
+            try {
+                String content = session.getVfs().readFile(file, session.getWorkingDir());
+                CommandResult fileResult = grepContent(content, file, patternStr, ignoreCase,
+                        showLineNumbers, countOnly, invertMatch, useRegex, listFilesOnly, true);
+                if (fileResult.isSuccess() && !fileResult.getStdout().isEmpty()) {
+                    allResults.add(fileResult.getStdout());
+                    anyMatch = true;
+                }
+            } catch (VfsException e) {
+                allResults.add("grep: " + e.getMessage());
+            }
+        }
+
+        if (!anyMatch) {
+            return CommandResult.error("");
+        }
+        return CommandResult.success(String.join("\n", allResults));
+    }
+
+    /**
+     * Performs grep on a single content string.
+     *
+     * @param content         the text content to search
+     * @param fileName        the filename (null for stdin)
+     * @param patternStr      the search pattern
+     * @param ignoreCase      whether to ignore case
+     * @param showLineNumbers whether to show line numbers
+     * @param countOnly       whether to show count only
+     * @param invertMatch     whether to invert match
+     * @param useRegex        whether to use regex
+     * @param listFilesOnly   whether to list filenames only
+     * @param prefixFileName  whether to prefix lines with filename
+     * @return the grep result for this content
+     */
+    private CommandResult grepContent(String content, String fileName, String patternStr,
+                                      boolean ignoreCase, boolean showLineNumbers,
+                                      boolean countOnly, boolean invertMatch,
+                                      boolean useRegex, boolean listFilesOnly,
+                                      boolean prefixFileName) {
         if (content.isEmpty()) {
-            return CommandResult.success(countOnly ? "0" : "");
+            return CommandResult.success(countOnly ? (prefixFileName && fileName != null
+                    ? fileName + ":0" : "0") : "");
         }
 
         Pattern patternRegex = null;
+        String lowerPattern = patternStr;
         if (useRegex) {
             try {
                 int flags = ignoreCase ? Pattern.CASE_INSENSITIVE : 0;
@@ -83,7 +139,7 @@ public class GrepCommand implements Command {
                 return CommandResult.error("grep: invalid regular expression");
             }
         } else {
-            patternStr = ignoreCase ? patternStr.toLowerCase() : patternStr;
+            lowerPattern = ignoreCase ? patternStr.toLowerCase() : patternStr;
         }
 
         String[] linesArray = content.split("\n");
@@ -99,7 +155,7 @@ public class GrepCommand implements Command {
                 matches = matcher.find();
             } else {
                 String searchLine = ignoreCase ? line.toLowerCase() : line;
-                matches = searchLine.contains(patternStr);
+                matches = searchLine.contains(lowerPattern);
             }
 
             if (invertMatch) {
@@ -108,15 +164,19 @@ public class GrepCommand implements Command {
 
             if (matches) {
                 count++;
-                if (countOnly) {
+                if (countOnly || listFilesOnly) {
                     continue;
                 }
 
-                if (showLineNumbers) {
-                    results.add((i + 1) + ":" + line);
-                } else {
-                    results.add(line);
+                String resultLine = "";
+                if (prefixFileName && fileName != null) {
+                    resultLine = fileName + ":";
                 }
+                if (showLineNumbers) {
+                    resultLine += (i + 1) + ":";
+                }
+                resultLine += line;
+                results.add(resultLine);
             }
         }
 
@@ -124,8 +184,16 @@ public class GrepCommand implements Command {
             return CommandResult.error("");
         }
 
+        if (listFilesOnly) {
+            return CommandResult.success(fileName != null ? fileName : "");
+        }
+
         if (countOnly) {
-            return CommandResult.success(String.valueOf(count));
+            String countStr = String.valueOf(count);
+            if (prefixFileName && fileName != null) {
+                countStr = fileName + ":" + countStr;
+            }
+            return CommandResult.success(countStr);
         }
 
         return CommandResult.success(String.join("\n", results));
@@ -133,7 +201,7 @@ public class GrepCommand implements Command {
 
     @Override
     public String getUsage() {
-        return "grep [-E] [-i] [-v] [-n] [-c] <pattern> <file>";
+        return "grep [-E] [-i] [-v] [-n] [-c] [-l] <pattern> [file...]";
     }
 
     @Override

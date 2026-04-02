@@ -34,6 +34,13 @@ public class HeadCommand implements Command {
                 } catch (NumberFormatException e) {
                     return CommandResult.error("head: invalid number of lines: " + args[i + 1]);
                 }
+            } else if (args[i].matches("-\\d+")) {
+                // Legacy -N syntax: -5 means -n 5
+                try {
+                    n = Integer.parseInt(args[i].substring(1));
+                } catch (NumberFormatException e) {
+                    return CommandResult.error("head: invalid number of lines: " + args[i]);
+                }
             } else {
                 files.add(args[i]);
             }
@@ -83,7 +90,7 @@ public class HeadCommand implements Command {
 
     @Override
     public String getUsage() {
-        return "head [-n N] <file> [file2...]";
+        return "head [-n N] [-N] <file> [file2...]";
     }
 
     @Override
