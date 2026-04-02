@@ -1,0 +1,41 @@
+@startuml ExamSessionSequence
+actor User
+participant ":ExamSession" as ES
+participant ":QuestionBank" as QB
+participant ":Ui" as UI
+participant ":ExamResult" as ER
+
+User -> ES : startInteractive()
+ES -> QB : getTopics()
+ES -> ES : listTopics()
+ES -> UI : readLine("Select topic: ")
+UI --> ES : topicSelection
+
+ES -> UI : readLine("How many questions?")
+UI --> ES : countInput
+
+ES -> QB : getQuestions(topic, count, false)
+QB --> ES : questions
+
+loop for each question
+    alt MCQ or FITB
+        ES -> UI : println(question.present())
+        ES -> UI : readLine("Your answer: ")
+        UI --> ES : userAnswer
+        ES -> ES : question.checkAnswer(userAnswer)
+        ES -> ER : addResult(question, answer, correct)
+    else PRAC
+        ES -> ES : handlePracQuestion(q)
+        note right
+            Creates temp VFS + ShellSession.
+            User types commands until "exit".
+            q.checkVfs(tempVfs) verifies result.
+        end note
+        ES -> ER : addResult(question, "", correct)
+    end
+end
+
+ES -> ER : display()
+ER --> ES : "Score: 7/10 (70%)"
+ES -> UI : println(result)
+@enduml

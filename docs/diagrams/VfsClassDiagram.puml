@@ -1,0 +1,59 @@
+@startuml VfsClassDiagram
+skinparam classAttributeIconSize 0
+
+abstract class FileNode {
+    - name : String
+    - permission : Permission
+    - parent : Directory
+    + getAbsolutePath() : String
+    + {abstract} isDirectory() : boolean
+    + {abstract} deepCopy() : FileNode
+}
+
+class Directory extends FileNode {
+    - children : LinkedHashMap<String, FileNode>
+    + addChild(child)
+    + removeChild(name)
+    + getChild(name) : FileNode
+    + getChildren() : List<FileNode>
+}
+
+class RegularFile extends FileNode {
+    - content : String
+    + getContent() : String
+    + setContent(s)
+    + appendContent(s)
+    + getSize() : int
+}
+
+class Permission {
+    - bits : boolean[9]
+    + {static} fromOctal(octal) : Permission
+    + {static} fromSymbolic(symbolic, current) : Permission
+    + canOwnerRead() : boolean
+    + canOwnerWrite() : boolean
+    + toString() : String
+}
+
+class VirtualFileSystem {
+    - root : Directory
+    + resolve(path, workingDir) : FileNode
+    + createFile(...) : RegularFile
+    + createDirectory(...) : Directory
+    + delete(...)
+    + copy(...)
+    + move(...)
+    + readFile(...) : String
+    + writeFile(...)
+    + listDirectory(...) : List<FileNode>
+    + findByName(...) : List<FileNode>
+    + deepCopy() : VirtualFileSystem
+}
+
+class VfsException extends RuntimeException
+
+VirtualFileSystem *-- "1" Directory : root
+Directory *-- "*" FileNode : children
+FileNode --> "1" Permission
+VirtualFileSystem ..> VfsException : throws
+@enduml

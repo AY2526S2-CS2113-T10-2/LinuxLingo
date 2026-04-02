@@ -1,0 +1,16 @@
+@startuml ResourceExtractionActivity
+start
+:Check if data/questions/ exists;
+if (directory exists?) then (yes)
+    :Skip extraction\n(user may have customized files);
+else (no)
+    :Create data/questions/ directory;
+    while (for each bundled .txt file)
+        :Class.getResourceAsStream("/questions/" + fileName);
+        :Files.copy(inputStream, targetPath);
+    endwhile
+endif
+
+:Ensure data/environments/ exists;
+stop
+@enduml
