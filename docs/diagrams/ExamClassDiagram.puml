@@ -1,0 +1,91 @@
+@startuml ExamClassDiagram
+skinparam classAttributeIconSize 0
+
+abstract class Question {
+    # type : QuestionType
+    # difficulty : Difficulty
+    # questionText : String
+    # explanation : String
+    + {abstract} present() : String
+    + {abstract} checkAnswer(answer) : boolean
+    + formatHeader() : String
+}
+
+enum "Question.QuestionType" as QT {
+    MCQ
+    FITB
+    PRAC
+}
+
+enum "Question.Difficulty" as QD {
+    EASY
+    MEDIUM
+    HARD
+}
+
+class McqQuestion extends Question {
+    - options : LinkedHashMap<Character, String>
+    - correctAnswer : char
+}
+
+class FitbQuestion extends Question {
+    - acceptedAnswers : List<String>
+}
+
+class PracQuestion extends Question {
+    - checkpoints : List<Checkpoint>
+    - setupItems : List<SetupItem>
+    + checkVfs(vfs) : boolean
+    + applySetup(vfs)
+}
+
+class Checkpoint {
+    - path : String
+    - expectedType : NodeType
+    - expectedContent : String
+    - expectedPermission : String
+    + matches(vfs) : boolean
+}
+
+enum "Checkpoint.NodeType" as NodeType {
+    DIR
+    FILE
+    NOT_EXISTS
+    CONTENT_EQUALS
+    PERM
+}
+
+class ExamSession {
+    - questionBank : QuestionBank
+    - ui : Ui
+    - vfsFactory : Supplier<VFS>
+    + startInteractive()
+    + startWithArgs(topic, count, random)
+    + runOneRandom()
+    + listTopics()
+}
+
+class QuestionBank {
+    - topics : Map<String, List<Question>>
+    + load(directory)
+    + getTopics() : List<String>
+    + getQuestions(...) : List<Question>
+    + getRandomQuestion() : Question
+}
+
+class ExamResult {
+    - results : List<QuestionResult>
+    + addResult(...)
+    + getScore() : int
+    + display() : String
+}
+
+ExamSession --> QuestionBank : queries
+ExamSession --> ExamResult : accumulates
+ExamSession ..> ShellSession : creates temp\n(for PRAC)
+QuestionBank --> "*" Question : stores
+PracQuestion --> "*" Checkpoint : verified by
+Question --> QT
+Question --> QD
+Checkpoint --> NodeType
+@enduml

@@ -42,7 +42,7 @@ public class ChmodCommand implements Command {
         }
 
         boolean isOctal = mode.matches("[0-7]{3}");
-        boolean isSymbolic = mode.matches("[ugoa]+[+-=][rwx]+");
+        boolean isSymbolic = mode.matches("[ugoa]*[+-=][rwx]*(,[ugoa]*[+-=][rwx]*)*");
         if (!isOctal && !isSymbolic) {
             return CommandResult.error("chmod: invalid mode: " + mode);
         }

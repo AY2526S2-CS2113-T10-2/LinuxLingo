@@ -1,0 +1,32 @@
+@startuml SaveLoadSequence
+participant ":SaveCommand" as Save
+participant ":VfsSerializer" as VS
+participant ":Storage" as S
+
+== Save Environment ==
+Save -> VS : serialize(vfs, workingDir)
+note right of VS
+  Depth-first walk of VFS tree.
+  Emit: TYPE | PATH | PERMISSIONS | CONTENT
+  Escape newlines, pipes, backslashes.
+end note
+VS --> Save : envFileContent : String
+Save -> VS : saveToFile(vfs, workingDir, name)
+VS -> S : writeFile(path, content)
+
+== Load Environment ==
+participant ":LoadCommand" as Load
+Load -> VS : loadFromFile(name)
+VS -> S : readFile(path)
+S --> VS : fileContent : String
+VS -> VS : deserialize(fileContent)
+note right of VS
+  Parse header for workingDir.
+  For each line: create Directory
+  or RegularFile with Permission.
+  Unescape content.
+end note
+VS --> Load : DeserializedVfs{vfs, workingDir}
+Load -> Load : session.replaceVfs(vfs)
+Load -> Load : session.setWorkingDir(workingDir)
+@enduml

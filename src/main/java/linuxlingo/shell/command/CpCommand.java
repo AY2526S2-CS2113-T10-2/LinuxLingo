@@ -9,7 +9,7 @@ import linuxlingo.shell.vfs.VfsException;
 
 /**
  * Copies files or directories.
- * Syntax: cp [-r] &lt;src&gt; &lt;dest&gt;
+ * Syntax: cp [-r] &lt;src...&gt; &lt;dest&gt;
  *
  * <p><b>Owner: C</b></p>
  */
@@ -27,8 +27,25 @@ public class CpCommand implements Command {
             }
         }
 
-        if (paths.size() != 2) {
+        if (paths.size() < 2) {
             return CommandResult.error("cp: " + getUsage());
+        }
+
+        // Multi-source: if more than 2 paths, last must be an existing directory
+        if (paths.size() > 2) {
+            String dest = paths.get(paths.size() - 1);
+            if (!session.getVfs().exists(dest, session.getWorkingDir())
+                    || !session.getVfs().resolve(dest, session.getWorkingDir()).isDirectory()) {
+                return CommandResult.error("cp: target '" + dest + "' is not a directory");
+            }
+            for (int i = 0; i < paths.size() - 1; i++) {
+                try {
+                    session.getVfs().copy(paths.get(i), dest, session.getWorkingDir(), recursive);
+                } catch (VfsException e) {
+                    return CommandResult.error("cp: " + e.getMessage());
+                }
+            }
+            return CommandResult.success("");
         }
 
         try {
@@ -41,7 +58,7 @@ public class CpCommand implements Command {
 
     @Override
     public String getUsage() {
-        return "cp [-r] <src> <dest>";
+        return "cp [-r] <src...> <dest>";
     }
 
     @Override

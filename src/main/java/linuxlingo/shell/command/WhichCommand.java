@@ -26,9 +26,9 @@ public class WhichCommand implements Command {
 
         for (String arg : args) {
             if (session.getRegistry().get(arg) != null) {
-                sb.append("/usr/bin/").append(arg).append("\n");
+                sb.append(arg).append(": /bin/").append(arg).append("\n");
             } else {
-                sb.append(arg).append(" not found").append("\n");
+                sb.append(arg).append(": not found").append("\n");
             }
         }
         return CommandResult.success(sb.toString());

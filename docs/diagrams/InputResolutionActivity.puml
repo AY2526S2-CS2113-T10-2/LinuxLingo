@@ -1,0 +1,16 @@
+@startuml InputResolutionActivity
+start
+if (File arguments provided?) then (yes)
+    :Read content from VFS file(s);
+else (no)
+    if (stdin != null?) then (yes)
+        :Use piped stdin as content;
+    else (no)
+        :Return error\n"cmdName: missing operand";
+        stop
+    endif
+endif
+:Process content\n(apply flags, filtering, etc.);
+:Return CommandResult.success(output);
+stop
+@enduml

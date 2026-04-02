@@ -22,16 +22,12 @@ import linuxlingo.shell.vfs.VfsException;
 public class FindCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
-        if (args.length < 1 || args[0].startsWith("-")) {
-            return CommandResult.error("find: " + getUsage());
-        }
-
-        String path = args[0];
+        String path = null;
         String namePattern = "*";
         String typeFilter = null;
         String sizeFilter = null;
 
-        for (int i = 1; i < args.length; i++) {
+        for (int i = 0; i < args.length; i++) {
             switch (args[i]) {
             case "-name":
                 if (++i < args.length) {
@@ -61,8 +57,21 @@ public class FindCommand implements Command {
                 }
                 break;
             default:
-                return CommandResult.error("find: " + getUsage());
+                if (args[i].startsWith("-")) {
+                    return CommandResult.error("find: " + getUsage());
+                }
+                if (path == null) {
+                    path = args[i];
+                } else {
+                    return CommandResult.error("find: " + getUsage());
+                }
+                break;
             }
+        }
+
+        // Default path to current directory if not specified
+        if (path == null) {
+            path = ".";
         }
 
         try {
@@ -91,7 +100,7 @@ public class FindCommand implements Command {
             }
 
             if (paths.isEmpty()) {
-                return CommandResult.error("find: '" + namePattern + "': No such file or directory");
+                return CommandResult.success("");
             }
 
             return CommandResult.success(String.join("\n", paths));
@@ -124,7 +133,7 @@ public class FindCommand implements Command {
 
     @Override
     public String getUsage() {
-        return "find <path> [-name <pattern>] [-type f|d] [-size +N|-N|N]";
+        return "find [path] [-name <pattern>] [-type f|d] [-size +N|-N|N]";
     }
 
     @Override

@@ -1,0 +1,28 @@
+@startuml QuestionParsingActivity
+start
+:ResourceExtractor.extractIfNeeded(dataDir);
+note right: Copies bundled .txt files\nfrom JAR to data/questions/\non first run
+
+:QuestionBank.load(questionsDir);
+
+:Storage.listFiles(dir, ".txt");
+
+while (for each .txt file)
+    :QuestionParser.parseFile(path);
+    :Read lines via Storage.readLines();
+    while (for each non-comment line)
+        :Split by " | " (limit 6);
+        if (type == "MCQ") then
+            :parseMcq() -> McqQuestion;
+        elseif (type == "FITB") then
+            :parseFitb() -> FitbQuestion;
+        elseif (type == "PRAC") then
+            :parsePrac() -> PracQuestion;
+        else
+            :Skip unknown type;
+        endif
+    endwhile
+    :Store questions under\ntopic name (from filename);
+endwhile
+stop
+@enduml
