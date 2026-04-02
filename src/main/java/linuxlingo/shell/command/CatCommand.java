@@ -46,10 +46,17 @@ public class CatCommand implements Command {
         }
 
         if (stdin != null) {
+            if (numberLines) {
+                StringBuilder stdinSb = new StringBuilder();
+                appendContent(stdinSb, stdin, true, 1);
+                return CommandResult.success(stdinSb.toString());
+            }
             return CommandResult.success(stdin);
         }
 
-        return CommandResult.error("cat: missing file operand");
+        return CommandResult.error(
+                "cat: reading from stdin is not supported in LinuxLingo."
+                + " Provide a filename or use piping.");
     }
 
     private int appendContent(StringBuilder sb, String content, boolean numberLines, int lineNumber) {

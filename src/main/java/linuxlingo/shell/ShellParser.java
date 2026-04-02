@@ -1,8 +1,8 @@
 package linuxlingo.shell;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Logger;
-import java.util.ArrayList;
 
 /**
  * Transforms a raw input string into a structured execution plan.
@@ -184,13 +184,19 @@ public class ShellParser {
         return new Segment(commandName, args, redirect, inputRedirect);
     }
 
-    private void flushCurrentToken(StringBuilder current, List<Token> tokens) throws IllegalArgumentException {
+    private void flushCurrentToken(StringBuilder current, List<Token> tokens,
+            boolean singleQuoted) throws IllegalArgumentException {
         assert current != null : "current StringBuilder must not be null";
         assert tokens != null : "tokens list must not be null";
-        if (!current.isEmpty()){
-            tokens.add(new Token(current.toString(), TokenType.WORD));
+        if (!current.isEmpty()) {
+            String value = singleQuoted ? "\0" + current.toString() : current.toString();
+            tokens.add(new Token(value, TokenType.WORD));
             current.setLength(0);
         }
+    }
+
+    private void flushCurrentToken(StringBuilder current, List<Token> tokens) throws IllegalArgumentException {
+        flushCurrentToken(current, tokens, false);
     }
 
     private List<Token> tokenize(String input) {
@@ -200,6 +206,7 @@ public class ShellParser {
         enum State { NORMAL, IN_SINGLE_QUOTE, IN_DOUBLE_QUOTE}
         State state = State.NORMAL;
         StringBuilder current = new StringBuilder();
+        boolean hasSingleQuote = false;
 
         for (int i = 0; i < input.length(); i++) {
             char c = input.charAt(i);
@@ -208,10 +215,21 @@ public class ShellParser {
             case NORMAL:
                 switch(c) {
                 case ' ', '\t':
-                    flushCurrentToken(current, tokens);
+                    flushCurrentToken(current, tokens, hasSingleQuote);
+                    hasSingleQuote = false;
+                    break;
+                case '\\':
+                    // Backslash escaping outside quotes
+                    if (i + 1 < input.length()) {
+                        i++;
+                        current.append(input.charAt(i));
+                    } else {
+                        current.append(c);
+                    }
                     break;
                 case '|':
-                    flushCurrentToken(current, tokens);
+                    flushCurrentToken(current, tokens, hasSingleQuote);
+                    hasSingleQuote = false;
                     if (i + 1 < input.length() && input.charAt(i + 1) == '|') {
                         tokens.add(new Token("||", TokenType.OR));
                         i++; // skip second '|'
@@ -220,16 +238,19 @@ public class ShellParser {
                     }
                     break;
                 case '<':
-                    flushCurrentToken(current, tokens);
+                    flushCurrentToken(current, tokens, hasSingleQuote);
+                    hasSingleQuote = false;
                     tokens.add(new Token("<", TokenType.INPUT_REDIRECT));
                     break;
                 case ';':
-                    flushCurrentToken(current, tokens);
+                    flushCurrentToken(current, tokens, hasSingleQuote);
+                    hasSingleQuote = false;
                     tokens.add(new Token(";", TokenType.SEMICOLON));
                     break;
                 case '&':
                     if (i + 1 < input.length() && input.charAt(i + 1) == '&') {
-                        flushCurrentToken(current, tokens);
+                        flushCurrentToken(current, tokens, hasSingleQuote);
+                        hasSingleQuote = false;
                         tokens.add(new Token("&&", TokenType.AND));
                         i++; // to skip the second '&'
                     } else {
@@ -237,7 +258,8 @@ public class ShellParser {
                     }
                     break;
                 case '>':
-                    flushCurrentToken(current, tokens);
+                    flushCurrentToken(current, tokens, hasSingleQuote);
+                    hasSingleQuote = false;
                     if (i + 1 < input.length() && input.charAt(i + 1) == '>') {
                         tokens.add(new Token(">>", TokenType.APPEND));
                         i++; // to skip the second '>'
@@ -247,6 +269,7 @@ public class ShellParser {
                     break;
                 case '\'':
                     state = State.IN_SINGLE_QUOTE;
+                    hasSingleQuote = true;
                     break;// do not add quote to current
                 case '"':
                     state = State.IN_DOUBLE_QUOTE;
@@ -276,7 +299,7 @@ public class ShellParser {
         }
 
         // Flushing any remaining token
-        flushCurrentToken(current, tokens);
+        flushCurrentToken(current, tokens, hasSingleQuote);
         return tokens;
     }
 
