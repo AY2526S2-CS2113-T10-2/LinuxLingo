@@ -54,6 +54,19 @@ public class CommandResult {
     }
 
     /**
+     * Creates a result with the given stdout, stderr, exit code, and exit flag.
+     *
+     * @param stdout     the standard output text.
+     * @param stderr     the standard error text.
+     * @param exitCode   the exit code.
+     * @param shouldExit whether the shell should exit.
+     * @return a new {@code CommandResult} with the specified fields.
+     */
+    public static CommandResult of(String stdout, String stderr, int exitCode, boolean shouldExit) {
+        return new CommandResult(stdout, stderr, exitCode, shouldExit);
+    }
+
+    /**
      * Returns the standard output text produced by the command.
      */
     public String getStdout() {

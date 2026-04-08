@@ -93,7 +93,7 @@ public class WcCommand implements Command {
         for (String file : files) {
             try {
                 String content = session.getVfs().readFile(file, session.getWorkingDir());
-                int lines = content.isEmpty() ? 0 : content.split("\n", -1).length;
+                int lines = countNewlines(content);
                 int words = content.isBlank() ? 0 : content.trim().split("\\s+").length;
                 int chars = content.length();
                 allCounts.add(new int[]{lines, words, chars});
@@ -182,7 +182,7 @@ public class WcCommand implements Command {
      */
     private String formatWcLine(String content, String fileName,
                                 boolean countLines, boolean countWords, boolean countChars) {
-        int lines = content.isEmpty() ? 0 : content.split("\n", -1).length;
+        int lines = countNewlines(content);
         int words = content.isBlank() ? 0 : content.trim().split("\\s+").length;
         int chars = content.length();
 
@@ -201,6 +201,20 @@ public class WcCommand implements Command {
 
         return formatWcLineAligned(lines, words, chars, fileName,
                 countLines, countWords, countChars, width);
+    }
+
+    /**
+     * Counts the number of newline characters in the content.
+     * This matches the POSIX wc -l behaviour (counting \n characters).
+     */
+    private int countNewlines(String content) {
+        int count = 0;
+        for (int i = 0; i < content.length(); i++) {
+            if (content.charAt(i) == '\n') {
+                count++;
+            }
+        }
+        return count;
     }
 
     @Override

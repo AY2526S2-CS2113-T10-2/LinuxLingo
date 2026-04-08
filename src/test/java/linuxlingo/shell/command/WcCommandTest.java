@@ -30,7 +30,7 @@ public class WcCommandTest {
         CommandResult result = command.execute(session, args, null);
 
         assertTrue(result.isSuccess());
-        assertEquals(" 2  4 23 words.txt", result.getStdout());
+        assertEquals(" 1  4 23 words.txt", result.getStdout());
     }
 
     @Test
@@ -39,7 +39,7 @@ public class WcCommandTest {
         CommandResult result = command.execute(session, args, null);
 
         assertTrue(result.isSuccess());
-        assertEquals("2 words.txt", result.getStdout());
+        assertEquals("1 words.txt", result.getStdout());
     }
 
     @Test
@@ -63,7 +63,7 @@ public class WcCommandTest {
         String[] args = {"data.txt"};
         CommandResult result = command.execute(session, args, null);
         assertTrue(result.isSuccess());
-        assertEquals(" 2  4 23 data.txt", result.getStdout());
+        assertEquals(" 1  4 23 data.txt", result.getStdout());
     }
 
     @Test
@@ -91,7 +91,7 @@ public class WcCommandTest {
         String[] args = {"-l", "data.txt"};
         CommandResult result = command.execute(session, args, null);
         assertTrue(result.isSuccess());
-        assertEquals("3 data.txt", result.getStdout());
+        assertEquals("2 data.txt", result.getStdout());
     }
 
     // ─── From CommandEnhancementV2Test: WcEnhancements ───────────

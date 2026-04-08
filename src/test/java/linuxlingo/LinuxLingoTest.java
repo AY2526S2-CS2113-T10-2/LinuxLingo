@@ -189,9 +189,11 @@ public class LinuxLingoTest {
     void oneShot_execCommandNotFoundPrintsNotFound() {
         LinuxLingo.main(new String[]{"exec", "notacommand123"});
         String out = outBytes.toString();
-        // "command not found" goes to stdout via ui.println in ShellSession
-        assertTrue(out.contains("command not found") || out.contains("notacommand123"),
-                "Should report command not found, got: " + out);
+        String err = errBytes.toString();
+        String combined = out + err;
+        // "command not found" may go to stdout or stderr
+        assertTrue(combined.contains("command not found") || combined.contains("notacommand123"),
+                "Should report command not found, got: " + combined);
     }
 
     @Test

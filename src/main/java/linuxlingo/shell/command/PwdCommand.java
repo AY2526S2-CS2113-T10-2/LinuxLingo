@@ -6,7 +6,12 @@ import linuxlingo.shell.ShellSession;
 public class PwdCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
-        return CommandResult.success(session.getWorkingDir());
+        String cwd = session.getWorkingDir();
+        // Detect dangling working directory reference (#146)
+        if (!session.getVfs().exists(cwd, "/")) {
+            return CommandResult.error("pwd: current directory has been removed: " + cwd);
+        }
+        return CommandResult.success(cwd);
     }
 
     @Override

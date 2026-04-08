@@ -1,6 +1,8 @@
 package linuxlingo;
 
 import java.nio.file.Path;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 import linuxlingo.cli.MainParser;
 import linuxlingo.cli.Ui;
@@ -32,6 +34,13 @@ public class LinuxLingo {
      * @param args command-line arguments; empty for interactive mode.
      */
     public static void main(String[] args) {
+        // Suppress internal Java logger messages from leaking to stderr (#142)
+        Logger rootLogger = Logger.getLogger("");
+        rootLogger.setLevel(Level.SEVERE);
+        for (var handler : rootLogger.getHandlers()) {
+            handler.setLevel(Level.SEVERE);
+        }
+
         Ui ui = new Ui();
 
         // Extract bundled resources on first run
@@ -123,11 +132,13 @@ public class LinuxLingo {
         }
 
         var result = shellSession.executeOnce(sb.toString());
+        // Print stderr before stdout (#147 ordering fix, #137/#149 no longer doubled)
+        if (!result.getStderr().isEmpty()) {
+            ui.printError(result.getStderr());
+        }
         if (!result.getStdout().isEmpty()) {
             ui.println(result.getStdout());
         }
-        // stderr is already printed by runPlan() during execution,
-        // so we don't print it again here to avoid duplicate error messages (#137)
     }
 
     /**

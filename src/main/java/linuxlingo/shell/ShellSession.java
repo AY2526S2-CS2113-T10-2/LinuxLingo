@@ -212,6 +212,10 @@ public class ShellSession {
      */
     private void executePlan(String input) {
         CommandResult result = runPlan(input);
+        // Print stderr first, then stdout to match display ordering (#147)
+        if (result != null && !result.getStderr().isEmpty()) {
+            ui.println(result.getStderr());
+        }
         // Print the final stdout produced by the last segment
         if (result != null && !result.getStdout().isEmpty()) {
             ui.println(result.getStdout());
@@ -255,7 +259,6 @@ public class ShellSession {
             plan = new ShellParser().parse(input);
         } catch (IllegalArgumentException e) {
             String errorMsg = e.getMessage();
-            ui.println(errorMsg);
             setLastExitCode(2);
             return CommandResult.error(errorMsg);
         }
@@ -274,6 +277,7 @@ public class ShellSession {
         CommandResult lastResult = CommandResult.success("");
         String pipedStdin = null; // stdout carried forward through a pipe
         StringBuilder accumulatedStdout = new StringBuilder(); // accumulated stdout across segments
+        StringBuilder accumulatedStderr = new StringBuilder(); // accumulated stderr across segments
 
         for (int i = 0; i < plan.segments.size(); i++) {
             ShellParser.Segment segment = plan.segments.get(i);
@@ -315,7 +319,10 @@ public class ShellSession {
                     stdin = vfs.readFile(segment.inputRedirect, workingDir);
                 } catch (linuxlingo.shell.vfs.VfsException e) {
                     String errorMsg = e.getMessage();
-                    ui.println(errorMsg);
+                    if (!accumulatedStderr.isEmpty()) {
+                        accumulatedStderr.append("\n");
+                    }
+                    accumulatedStderr.append(errorMsg);
                     setLastExitCode(1);
                     lastResult = CommandResult.error(errorMsg);
                     continue;
@@ -338,7 +345,10 @@ public class ShellSession {
                 if (suggestion != null) {
                     errorMsg += "\n" + suggestion;
                 }
-                ui.println(errorMsg);
+                if (!accumulatedStderr.isEmpty()) {
+                    accumulatedStderr.append("\n");
+                }
+                accumulatedStderr.append(errorMsg);
                 setLastExitCode(127);
                 lastResult = CommandResult.error(errorMsg);
                 continue; // no piped output from a missing command
@@ -347,9 +357,12 @@ public class ShellSession {
             // ── v1.0: Execute the command ──
             CommandResult result = command.execute(this, expandedArgs, stdin);
 
-            // Print stderr immediately (user is not redirected)
+            // Defer stderr printing to maintain correct output ordering (#147)
             if (!result.getStderr().isEmpty()) {
-                ui.println(result.getStderr());
+                if (!accumulatedStderr.isEmpty()) {
+                    accumulatedStderr.append("\n");
+                }
+                accumulatedStderr.append(result.getStderr());
             }
 
             // Handle output redirect (> or >>)
@@ -367,7 +380,10 @@ public class ShellSession {
                     result = CommandResult.success("");
                 } catch (linuxlingo.shell.vfs.VfsException e) {
                     String errorMsg = e.getMessage();
-                    ui.println(errorMsg);
+                    if (!accumulatedStderr.isEmpty()) {
+                        accumulatedStderr.append("\n");
+                    }
+                    accumulatedStderr.append(errorMsg);
                     setLastExitCode(1);
                     lastResult = CommandResult.error(errorMsg);
                     continue;
@@ -382,10 +398,10 @@ public class ShellSession {
             } else if (!result.getStdout().isEmpty()) {
                 // Accumulate intermediate stdout for non-pipe operators
                 // so output is not silently discarded (fix for #136)
-                accumulatedStdout.append(result.getStdout());
-                if (i < plan.segments.size() - 1) {
+                if (!accumulatedStdout.isEmpty()) {
                     accumulatedStdout.append("\n");
                 }
+                accumulatedStdout.append(result.getStdout());
             }
 
             // Update session state
@@ -398,10 +414,12 @@ public class ShellSession {
             }
         }
 
-        // Return accumulated stdout from all segments (fix for #136)
+        // Return accumulated output from all segments (fix for #136, #147, #148)
         String allStdout = accumulatedStdout.toString();
-        if (!allStdout.isEmpty()) {
-            return CommandResult.success(allStdout);
+        String allStderr = accumulatedStderr.toString();
+        if (!allStdout.isEmpty() || !allStderr.isEmpty()) {
+            return CommandResult.of(allStdout, allStderr,
+                    lastResult.getExitCode(), lastResult.shouldExit());
         }
         return lastResult;
     }
@@ -562,12 +580,13 @@ public class ShellSession {
     public String[] expandCombinedFlags(String[] args) {
         List<String> expanded = new ArrayList<>();
         for (String arg : args) {
-            // Only expand if it starts with '-', has 3-4 chars (2-3 combined flags),
-            // doesn't start with '--', and all chars after '-' are letters.
-            // Longer args like -name, -type, -size are treated as single options.
+            // Expand if it starts with '-', has 3-6 chars (2-5 combined flags),
+            // doesn't start with '--', all chars after '-' are letters, and
+            // the flag text isn't a known multi-char option word (#145).
             if (arg.startsWith("-") && !arg.startsWith("--")
-                    && arg.length() > 2 && arg.length() <= 4
-                    && allLetters(arg.substring(1))) {
+                    && arg.length() > 2 && arg.length() <= 6
+                    && allLetters(arg.substring(1))
+                    && !isKnownLongOption(arg.substring(1))) {
                 for (int i = 1; i < arg.length(); i++) {
                     expanded.add("-" + arg.charAt(i));
                 }
@@ -588,6 +607,20 @@ public class ShellSession {
             }
         }
         return true;
+    }
+
+    /**
+     * Checks if the flag text (without leading '-') is a known multi-character
+     * option name that should NOT be expanded into separate single-char flags.
+     * Examples: "name", "type", "size", "exec", "random".
+     */
+    private static final java.util.Set<String> KNOWN_LONG_OPTIONS = java.util.Set.of(
+            "name", "type", "size", "exec", "perm", "path",
+            "help", "sort", "file", "count"
+    );
+
+    private boolean isKnownLongOption(String flagText) {
+        return KNOWN_LONG_OPTIONS.contains(flagText.toLowerCase());
     }
 
     /**

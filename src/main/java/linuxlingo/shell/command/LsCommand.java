@@ -56,6 +56,20 @@ public class LsCommand implements Command {
 
             for (int t = 0; t < targetPaths.size(); t++) {
                 String targetPath = targetPaths.get(t);
+
+                // Check if the target is a file (not a directory) — display it directly (#143)
+                FileNode targetNode = session.getVfs().resolve(targetPath, session.getWorkingDir());
+                if (!targetNode.isDirectory()) {
+                    if (longFormat) {
+                        List<FileNode> singleFile = new ArrayList<>();
+                        singleFile.add(targetNode);
+                        formatLongListing(singleFile, lines);
+                    } else {
+                        lines.add(targetNode.getName());
+                    }
+                    continue;
+                }
+
                 if (multiTarget) {
                     if (t > 0) {
                         lines.add("");

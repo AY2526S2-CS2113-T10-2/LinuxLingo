@@ -124,11 +124,12 @@ public class MainParser {
         }
 
         var result = shellSession.executeOnce(rest);
-        if (!result.getStdout().isEmpty()) {
-            ui.println(result.getStdout());
-        }
+        // Print stderr before stdout to match display ordering (#147)
         if (!result.getStderr().isEmpty()) {
             ui.printError(result.getStderr());
+        }
+        if (!result.getStdout().isEmpty()) {
+            ui.println(result.getStdout());
         }
     }
 
