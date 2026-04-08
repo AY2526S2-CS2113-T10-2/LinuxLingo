@@ -19,6 +19,15 @@ import linuxlingo.shell.vfs.VirtualFileSystem;
  * </pre>
  * Where TYPE is {@code DIR} or {@code FILE}, and checkpoints are comma-separated.
  *
+ * <h3>v2.0 question bank format</h3>
+ * <p>Same base layout as v1.0, but the {@code OPTIONS} field now contains
+ * semicolon-separated setup items, which are parsed into {@link SetupItem}
+ * instances by {@code QuestionParser}. For example:</p>
+ * <pre>
+ * PRAC | DIFFICULTY | questionText | path1:TYPE,path2:TYPE
+ *   | MKDIR:/project;FILE:/project/readme.txt=hello | explanation
+ * </pre>
+ *
  * <h4>Flow</h4>
  * <ol>
  *   <li>{@code ExamSession} presents the question text.</li>

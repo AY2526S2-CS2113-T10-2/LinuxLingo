@@ -28,7 +28,7 @@ import linuxlingo.shell.vfs.VirtualFileSystem;
  * <h3>PRAC question flow</h3>
  * For practical questions, a temporary {@link ShellSession} with a fresh
  * {@link VirtualFileSystem} is created via the {@code vfsFactory}. The user
- * types commands until "done", then the VFS is checked against checkpoints.
+ * types commands until {@code exit}, then the VFS is checked against checkpoints.
  *
  * @see QuestionBank
  * @see ExamResult
