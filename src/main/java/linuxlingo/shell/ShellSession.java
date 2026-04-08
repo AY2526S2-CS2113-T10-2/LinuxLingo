@@ -65,6 +65,10 @@ import linuxlingo.shell.vfs.VirtualFileSystem;
 public class ShellSession {
 
     private static final Logger LOGGER = Logger.getLogger(ShellSession.class.getName());
+    private static final java.util.Set<String> KNOWN_LONG_OPTIONS = java.util.Set.of(
+            "name", "type", "size", "exec", "perm", "path",
+            "help", "sort", "file", "count"
+    );
 
     private VirtualFileSystem vfs;
     private String workingDir;
@@ -614,11 +618,6 @@ public class ShellSession {
      * option name that should NOT be expanded into separate single-char flags.
      * Examples: "name", "type", "size", "exec", "random".
      */
-    private static final java.util.Set<String> KNOWN_LONG_OPTIONS = java.util.Set.of(
-            "name", "type", "size", "exec", "perm", "path",
-            "help", "sort", "file", "count"
-    );
-
     private boolean isKnownLongOption(String flagText) {
         return KNOWN_LONG_OPTIONS.contains(flagText.toLowerCase());
     }
