@@ -253,6 +253,17 @@ public class ExamSessionTest {
     }
 
     @Test
+    public void runOneRandom_userQuit_printsSkipped() throws Exception {
+        QuestionBank bank = createBankWithQuestions();
+        ExamSession session = createSession("quit\n", bank);
+        session.runOneRandom();
+
+        String output = outStream.toString();
+        assertTrue(output.contains("Skipped."),
+                "Random mode should explicitly indicate a skipped question when user types quit");
+    }
+
+    @Test
     public void startInteractive_negativeCount_clampedToOne() throws Exception {
         QuestionBank bank = createBankWithQuestions();
         // Select topic 1, count "-5", then answer questions

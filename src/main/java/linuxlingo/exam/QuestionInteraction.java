@@ -164,6 +164,7 @@ class QuestionInteraction {
         }
         if (userAnswer == null || userAnswer.trim().equalsIgnoreCase("quit")) {
             LOGGER.log(Level.FINE, "Question skipped by user at index {0}", index);
+            ui.println("Skipped.");
             return false;
         }
 
