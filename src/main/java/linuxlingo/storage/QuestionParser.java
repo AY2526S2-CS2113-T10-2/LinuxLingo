@@ -48,6 +48,16 @@ import linuxlingo.exam.question.Question;
 public class QuestionParser {
     private static final Logger LOGGER = Logger.getLogger(QuestionParser.class.getName());
 
+    // Question bank schema: TYPE | DIFFICULTY | QUESTION_TEXT | ANSWER | OPTIONS | EXPLANATION
+    private static final int FIELD_COUNT = 6;
+
+    private static final int IDX_TYPE = 0;
+    private static final int IDX_DIFFICULTY = 1;
+    private static final int IDX_QUESTION_TEXT = 2;
+    private static final int IDX_ANSWER = 3;
+    private static final int IDX_OPTIONS = 4;
+    private static final int IDX_EXPLANATION = 5;
+
     /**
      * Parse a single question bank file into a list of questions.
      *
@@ -67,19 +77,37 @@ public class QuestionParser {
                 continue;
             }
 
-            String[] fields = trimmedLine.split("\\s+\\|\\s+", 6);
-            if (fields.length < 4) {
+            String[] rawFields = trimmedLine.split("\\s+\\|\\s+", -1);
+
+            if (rawFields.length < 4 || rawFields.length > FIELD_COUNT) {
                 LOGGER.log(Level.WARNING, "Skipping malformed question line {0} in {1}",
                         new Object[]{i + 1, validatedPath});
                 continue;
             }
 
-            String type = fields[0].trim().toUpperCase(Locale.ROOT);
-            Question.Difficulty difficulty = parseDifficulty(fields[1].trim());
-            String questionText = fields[2].trim();
-            String answer = fields[3].trim();
-            String options = fields.length >= 5 ? fields[4].trim() : "";
-            String explanation = fields.length >= 6 ? fields[5].trim() : "";
+            if (rawFields.length < FIELD_COUNT) {
+                String[] padded = new String[FIELD_COUNT];
+                System.arraycopy(rawFields, 0, padded, 0, rawFields.length);
+                for (int j = rawFields.length; j < FIELD_COUNT; j++) {
+                    padded[j] = "";
+                }
+                rawFields = padded;
+            }
+            String type = rawFields[IDX_TYPE].trim().toUpperCase(Locale.ROOT);
+            Question.Difficulty difficulty = parseDifficulty(rawFields[IDX_DIFFICULTY].trim());
+            String questionText = rawFields[IDX_QUESTION_TEXT].trim();
+            String answer = rawFields[IDX_ANSWER].trim();
+            String options = rawFields[IDX_OPTIONS].trim();
+            String explanation = rawFields[IDX_EXPLANATION].trim();
+
+            if (!"MCQ".equals(type) && options.isEmpty() && !explanation.isEmpty()) {
+            } else if (!"MCQ".equals(type) && !options.isEmpty() && explanation.isEmpty()) {
+                explanation = options;
+                options = "";
+            }
+            if (explanation.startsWith("|")) {
+                explanation = explanation.substring(1).trim();
+            }
 
             try {
                 switch (type) {
@@ -149,11 +177,9 @@ public class QuestionParser {
      */
     private static FitbQuestion parseFitb(String questionText, String answer,
                                           String explanation, Question.Difficulty difficulty) {
-        // Split by unescaped pipe: use negative lookbehind so \| is not treated as separator
         String[] answers = answer.split("(?<!\\\\)\\|");
         List<String> accepted = new ArrayList<>();
         for (String acceptedAnswer : answers) {
-            // Unescape \| to literal |
             String trimmedAnswer = acceptedAnswer.trim().replace("\\|", "|");
             if (!trimmedAnswer.isEmpty()) {
                 accepted.add(trimmedAnswer);
@@ -191,7 +217,6 @@ public class QuestionParser {
             throw new IllegalArgumentException("PRAC checkpoints must not be empty");
         }
 
-        // v2.0: parse setup items from 'options' field (semicolon-separated).
         List<SetupItem> setupItems = new ArrayList<>();
         if (options != null && !options.trim().isEmpty()) {
             String[] rawItems = options.split(";");
