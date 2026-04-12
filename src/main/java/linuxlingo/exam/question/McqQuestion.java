@@ -41,10 +41,21 @@ public class McqQuestion extends Question {
 
     @Override
     public boolean checkAnswer(String answer) {
-        if (answer == null || answer.trim().isEmpty()) {
+        if (answer == null) {
             return false;
         }
-        return Character.toUpperCase(answer.trim().charAt(0)) == correctAnswer;
+
+        String trimmed = answer.trim();
+        if (trimmed.length() != 1) {
+            return false;
+        }
+
+        char letter = Character.toUpperCase(trimmed.charAt(0));
+        if (letter < 'A' || letter > 'D') {
+            return false;
+        }
+
+        return letter == correctAnswer;
     }
 
     public char getCorrectAnswer() {

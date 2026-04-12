@@ -47,5 +47,8 @@ public class McqQuestionTest {
     void testCheckAnswerNull() {
         assertFalse(makeQuestion().checkAnswer(null));
         assertFalse(makeQuestion().checkAnswer(""));
+        assertFalse(makeQuestion().checkAnswer("pwd"));
+        assertFalse(makeQuestion().checkAnswer("B."));
+        assertFalse(makeQuestion().checkAnswer("B pwd"));
     }
 }
