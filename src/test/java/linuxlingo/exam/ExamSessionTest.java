@@ -79,11 +79,14 @@ public class ExamSessionTest {
     }
 
     @Test
-    public void startInteractive_invalidTopicNumber_printsError() throws Exception {
+    public void startInteractive_invalidTopicNumber_printsErrorAndReprompts() throws Exception {
         QuestionBank bank = createBankWithQuestions();
-        ExamSession session = createSession("99\n", bank);
+        // Enter invalid selection, then recover with valid topic selection.
+        ExamSession session = createSession("99\n1\n\nB\nls\n", bank);
         session.startInteractive();
-        assertTrue(outStream.toString().contains("Invalid topic selection"));
+        String output = outStream.toString();
+        assertTrue(output.contains("Invalid topic selection"));
+        assertTrue(output.contains("[Q"), "Should proceed into exam after valid topic selected");
     }
 
     @Test

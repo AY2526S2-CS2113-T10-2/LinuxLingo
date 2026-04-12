@@ -83,35 +83,44 @@ public class ExamSession {
      * Prompt the user to choose a topic, either by number or by name.
      *
      * @param topics the list of available topics
-     * @return the selected topic name, or {@code null} if selection was invalid
+     * @return the selected topic name, or {@code null} if the input stream ends
      */
     private String promptForTopic(List<String> topics) {
-        listTopics();
-        String topicInput = ui.readLine("Select topic (number or name): ");
-        if (topicInput == null) {
-            LOGGER.fine("Topic selection input was null");
-            ui.println("Invalid topic selection.");
-            return null;
-        }
-
-        String selectedTopic = null;
-        String trimmedTopicInput = topicInput.trim();
-        try {
-            int index = Integer.parseInt(trimmedTopicInput);
-            if (index >= 1 && index <= topics.size()) {
-                selectedTopic = topics.get(index - 1);
+        while (true) {
+            listTopics();
+            String topicInput = ui.readLine("Select topic (number or name): ");
+            if (topicInput == null) {
+                // Input stream ended (e.g. tests with insufficient input).
+                LOGGER.fine("Topic selection input was null (input stream ended?)");
+                ui.println("Invalid topic selection.");
+                return null;
             }
-        } catch (NumberFormatException e) {
-            if (questionBank.hasTopic(trimmedTopicInput)) {
-                selectedTopic = trimmedTopicInput;
-            }
-        }
 
-        if (selectedTopic == null) {
+            String trimmedTopicInput = topicInput.trim();
+            if (trimmedTopicInput.isEmpty()) {
+                ui.println("Invalid topic selection. Please enter a topic number or name.");
+                continue;
+            }
+
+            String selectedTopic = null;
+            try {
+                int index = Integer.parseInt(trimmedTopicInput);
+                if (index >= 1 && index <= topics.size()) {
+                    selectedTopic = topics.get(index - 1);
+                }
+            } catch (NumberFormatException e) {
+                if (questionBank.hasTopic(trimmedTopicInput)) {
+                    selectedTopic = trimmedTopicInput;
+                }
+            }
+
+            if (selectedTopic != null) {
+                return selectedTopic;
+            }
+
             LOGGER.log(Level.INFO, "Invalid interactive topic selection: {0}", trimmedTopicInput);
-            ui.println("Invalid topic selection.");
+            ui.println("Invalid topic selection. Please choose one of the topics listed.");
         }
-        return selectedTopic;
     }
 
     /**
