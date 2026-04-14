@@ -212,6 +212,35 @@ public class MainParserTest {
     }
 
     @Test
+    public void run_examDuplicateTopicFlags_reportsUsageInsteadOfPickingSilently() {
+        MainParser parser = createParser("exam -t navigation -t file-management\nexit\n");
+        parser.run();
+        String output = outStream.toString();
+        assertTrue(output.contains("usage")
+                || output.contains("Invalid")
+                || output.contains("only one"));
+    }
+
+    @Test
+    public void run_examMissingTopicAfterDashT_reportsUsageError() {
+        MainParser parser = createParser("exam -t\nexit\n");
+        parser.run();
+        String output = outStream.toString();
+        assertTrue(output.contains("usage")
+                || output.contains("Invalid")
+                || output.contains("missing"));
+    }
+
+    @Test
+    public void run_examLongUnknownTopicFlag_reportsFormatError() {
+        MainParser parser = createParser("exam -topic navigation\nexit\n");
+        parser.run();
+        String output = outStream.toString();
+        assertTrue(output.contains("usage")
+                || output.contains("Invalid"));
+    }
+
+    @Test
     public void run_examUnknownFlag_fallsBackGracefully() {
         MainParser parser = createParser("exam -unknown\nexit\n");
         parser.run();

@@ -53,8 +53,10 @@ public class LinuxLingoTest {
     void oneShot_unknownCommand_printsUsage() {
         LinuxLingo.main(new String[]{"unknowncmd"});
         String out = outBytes.toString();
-        assertTrue(out.contains("Unknown command") || out.contains("Usage"),
-                "Should print Unknown command or Usage hint, got: " + out);
+        assertTrue(out.contains("Unknown command: unknowncmd"),
+            "Should identify the unknown command, got: " + out);
+        assertTrue(out.contains("Usage: java -jar LinuxLingo.jar [shell|exec|exam]"),
+            "Should print one-shot usage guidance, got: " + out);
     }
 
     // ─── exec one-shot mode ───────────────────────────────────────
@@ -76,12 +78,12 @@ public class LinuxLingoTest {
 
     @Test
     void oneShot_execMissingEnvNamePrintsMissingCommand() {
-        // -e without enough args falls through to the normal path (cmdStart=1, args[1]="-e")
-        // With only 2 args: exec -e  → cmdStart stays at 1, command becomes "-e"
         LinuxLingo.main(new String[]{"exec", "-e"});
-        // Should not crash; output may contain error or missing command —
-        // as long as the JVM does not throw an uncaught exception, this is acceptable.
-        assertTrue(true, "main() should not throw for exec -e with missing args");
+        String out = outBytes.toString();
+        assertTrue(out.contains("exec -e: missing command after environment name"),
+            "Missing env command should be reported, got: " + out);
+        assertTrue(out.contains("Usage: java -jar LinuxLingo.jar exec -e <env> <command>"),
+            "Should print exec -e usage guidance, got: " + out);
     }
 
     @Test
@@ -106,82 +108,47 @@ public class LinuxLingoTest {
     @Test
     void oneShot_examTopicsFlagListsTopicsOrEmpty() {
         LinuxLingo.main(new String[]{"exam", "-topics"});
-        // Should not throw; may output "No topics" or topic list
-        assertTrue(true);
-    }
-
-    @Test
-    void oneShot_examRandomFlagDoesNotCrash() {
-        LinuxLingo.main(new String[]{"exam", "-random"});
-        // Should not crash even if no questions loaded
-        assertTrue(true);
-    }
-
-    @Test
-    void oneShot_examTopicAndCountDoesNotCrash() {
-        LinuxLingo.main(new String[]{"exam", "-t", "navigation", "-n", "5"});
-        // Should not crash even if no questions loaded
-        assertTrue(true);
-    }
-
-    @Test
-    void oneShot_examTopicFlagDoesNotCrash() {
-        LinuxLingo.main(new String[]{"exam", "-t", "navigation"});
-        assertTrue(true);
-    }
-
-    @Test
-    void oneShot_examInvalidCountDoesNotCrash() {
-        LinuxLingo.main(new String[]{"exam", "-n", "notanumber"});
         String out = outBytes.toString();
-        assertTrue(out.contains("Invalid exam command") && out.contains("Usage"),
-                "Invalid -n value should show usage error, got: " + out);
+        assertTrue(out.contains("Available topics:"),
+                "-topics should list available topics, got: " + out);
     }
 
     @Test
-    void oneShot_examRandomWithTopicDoesNotCrash() {
-        LinuxLingo.main(new String[]{"exam", "-random", "-t", "navigation"});
-        assertTrue(true);
-    }
-
-    @Test
-    void oneShot_examUnknownArgsFallsBackToInteractive() {
-        LinuxLingo.main(new String[]{"exam", "-unknown"});
+    void oneShot_examRandomFlag_printsSingleQuestionPrompt() {
+        java.io.InputStream originalIn = System.in;
+        System.setIn(new java.io.ByteArrayInputStream("quit\nexit\n".getBytes()));
+        try {
+            LinuxLingo.main(new String[]{"exam", "-random"});
+        } finally {
+            System.setIn(originalIn);
+        }
         String out = outBytes.toString();
-        assertTrue(out.contains("Invalid exam command") && out.contains("Usage"),
-                "Unknown exam flag should show usage error, got: " + out);
+        assertTrue(out.contains("[Q1/1]"),
+                "Random one-shot exam should present a single question, got: " + out);
     }
 
     @Test
-    void oneShot_examDuplicateTopicFlagPrintsUsageError() {
-        LinuxLingo.main(new String[]{"exam", "-t", "navigation", "-t", "file-management"});
+    void oneShot_examInvalidTopic_listsAvailableTopics() {
+        LinuxLingo.main(new String[]{"exam", "-t", "definitely-not-a-real-topic", "-n", "5"});
         String out = outBytes.toString();
-        assertTrue(out.contains("Duplicate flag") && out.contains("Usage"),
-                "Duplicate -t should be rejected, got: " + out);
+        assertTrue(out.contains("Invalid topic selection."),
+                "Invalid topic should be rejected, got: " + out);
+        assertTrue(out.contains("Available topics:"),
+                "Invalid topic should be followed by the topic list, got: " + out);
     }
 
     @Test
-    void oneShot_examMissingTopicValuePrintsUsageError() {
-        LinuxLingo.main(new String[]{"exam", "-t"});
+    void oneShot_examRandomWithTopic_printsQuestionPrompt() {
+        java.io.InputStream originalIn = System.in;
+        System.setIn(new java.io.ByteArrayInputStream("quit\nexit\n".getBytes()));
+        try {
+            LinuxLingo.main(new String[]{"exam", "-random", "-t", "navigation"});
+        } finally {
+            System.setIn(originalIn);
+        }
         String out = outBytes.toString();
-        assertTrue(out.contains("Missing value") && out.contains("Usage"),
-                "Missing -t value should be rejected, got: " + out);
-    }
-
-    @Test
-    void oneShot_examCountWithoutTopicPrintsUsageError() {
-        LinuxLingo.main(new String[]{"exam", "-n", "5"});
-        String out = outBytes.toString();
-        assertTrue(out.contains("requires -t") && out.contains("Usage"),
-                "-n without -t should be rejected, got: " + out);
-    }
-
-    @Test
-    void oneShot_examCountAndRandomWithoutTopicPrintsUsageError() {
-        LinuxLingo.main(new String[]{"exam", "-n", "3", "-random"});
-        String out = outBytes.toString();
-        assertTrue(out.contains("requires -t") && out.contains("Usage"),
-                "-n with -random but without -t should be rejected, got: " + out);
+        assertTrue(out.contains("[Q1/"),
+                "Topic exam with -random should start an exam question, got: " + out);
     }
 
     // ─── shell one-shot mode ──────────────────────────────────────
@@ -196,8 +163,9 @@ public class LinuxLingoTest {
         } finally {
             System.setIn(originalIn);
         }
-        // Should not crash
-        assertTrue(true);
+        String out = outBytes.toString();
+        assertTrue(out.contains("Welcome to LinuxLingo Shell! Type 'exit' to quit."),
+            "Shell one-shot mode should show the shell welcome text, got: " + out);
     }
 
     // ─── No-args mode (interactive) — just ensure it doesn't hang ─

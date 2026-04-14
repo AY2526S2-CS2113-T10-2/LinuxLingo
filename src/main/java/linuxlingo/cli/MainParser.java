@@ -1,7 +1,7 @@
 package linuxlingo.cli;
 
-import linuxlingo.exam.ExamSession;
 import linuxlingo.exam.ExamCommandParser;
+import linuxlingo.exam.ExamSession;
 import linuxlingo.shell.ShellSession;
 
 /**
@@ -67,6 +67,11 @@ public class MainParser {
 
         switch (command) {
         case "shell" -> {
+            if (parts.length > 1) {
+                ui.println("shell: too many arguments");
+                ui.println("Usage: shell");
+                return true;
+            }
             shellSession.startInteractive();
             return true;
         }
@@ -99,15 +104,23 @@ public class MainParser {
     private void handleExec(String input) {
         // Extract the command string after "exec"
         String rest = input.substring(4).trim();
-        // Remove optional -e flag
         String envName = null;
-        if (rest.startsWith("-e ")) {
-            String[] execParts = rest.split("\\s+", 3);
-            if (execParts.length >= 3) {
-                envName = execParts[1];
-                rest = execParts[2];
+        String[] execParts = rest.isEmpty() ? new String[0] : rest.split("\\s+", 3);
+        if (execParts.length > 0 && "-e".equals(execParts[0])) {
+            if (execParts.length < 2 || execParts[1].isBlank()) {
+                ui.println("exec -e: missing environment name");
+                ui.println("Usage: exec -e <env> \"<command>\"");
+                return;
             }
+            if (execParts.length < 3 || execParts[2].isBlank()) {
+                ui.println("exec -e: missing command after environment name");
+                ui.println("Usage: exec -e <env> \"<command>\"");
+                return;
+            }
+            envName = execParts[1];
+            rest = execParts[2];
         }
+
         // Remove surrounding quotes if present
         if ((rest.startsWith("\"") && rest.endsWith("\""))
                 || (rest.startsWith("'") && rest.endsWith("'"))) {
@@ -163,7 +176,8 @@ public class MainParser {
             return;
         }
         if (parsed.topic != null) {
-            int count = parsed.count == null ? -1 : parsed.count;
+            Integer parsedCount = parsed.count;
+            int count = parsedCount == null ? -1 : parsedCount;
             examSession.startWithArgs(parsed.topic, count, parsed.random);
             return;
         }

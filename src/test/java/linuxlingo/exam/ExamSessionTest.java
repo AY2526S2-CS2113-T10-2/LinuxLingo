@@ -116,6 +116,18 @@ public class ExamSessionTest {
     }
 
     @Test
+    public void startInteractive_invalidTopicName_printsErrorAndReprompts() throws Exception {
+        QuestionBank bank = createBankWithQuestions();
+        ExamSession session = createSession("navigashun\n1\n\nB\nls\n", bank);
+        session.startInteractive();
+
+        String output = outStream.toString();
+        assertTrue(output.contains("Invalid topic selection"));
+        assertTrue(output.contains("navigation"));
+        assertTrue(output.contains("[Q"), "Should continue after a corrected topic selection");
+    }
+
+    @Test
     public void startWithArgs_invalidTopic_printsError() throws Exception {
         QuestionBank bank = createBankWithQuestions();
         ExamSession session = createSession("", bank);

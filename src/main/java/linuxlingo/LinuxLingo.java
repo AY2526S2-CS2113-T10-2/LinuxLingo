@@ -6,8 +6,8 @@ import java.util.logging.Logger;
 
 import linuxlingo.cli.MainParser;
 import linuxlingo.cli.Ui;
-import linuxlingo.exam.ExamSession;
 import linuxlingo.exam.ExamCommandParser;
+import linuxlingo.exam.ExamSession;
 import linuxlingo.exam.QuestionBank;
 import linuxlingo.shell.ShellSession;
 import linuxlingo.shell.vfs.VirtualFileSystem;
@@ -85,7 +85,14 @@ public class LinuxLingo {
     private static void handleOneShot(String[] args, Ui ui,
                                       ShellSession shellSession, ExamSession examSession) {
         switch (args[0]) {
-        case "shell" -> shellSession.startInteractive();
+        case "shell" -> {
+            if (args.length > 1) {
+                ui.println("shell: too many arguments");
+                ui.println("Usage: java -jar LinuxLingo.jar shell");
+                return;
+            }
+            shellSession.startInteractive();
+        }
         case "exec" -> handleExec(args, ui, shellSession);
         case "exam" -> handleExam(args, examSession);
         default -> {
@@ -164,7 +171,8 @@ public class LinuxLingo {
             return;
         }
         if (parsed.topic != null) {
-            int count = parsed.count == null ? -1 : parsed.count;
+            Integer parsedCount = parsed.count;
+            int count = parsedCount == null ? -1 : parsedCount;
             examSession.startWithArgs(parsed.topic, count, parsed.random);
             return;
         }
