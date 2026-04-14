@@ -1,8 +1,10 @@
 package linuxlingo.shell;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Logger;
+
 import linuxlingo.shell.utility.Preconditions;
 
 /**
@@ -43,6 +45,11 @@ public class ShellParser {
      * shell input. Consumers: expandGlobs(), expandVariables().
      */
     public static final String SINGLE_QUOTE_MARKER = "\0";
+    /**
+     * Marker used internally for a backslash-escaped dollar sign so
+     * variable expansion can preserve it as a literal {@code $}.
+     */
+    public static final char ESCAPED_DOLLAR_MARKER = '\u0001';
 
     private static final Logger LOGGER =  Logger.getLogger(ShellParser.class.getName());
 
@@ -142,6 +149,8 @@ public class ShellParser {
         public final String commandName;
         /** The arguments passed to the command */
         public final String[] args;
+        /** All output redirections in left-to-right order. */
+        public final List<RedirectInfo> redirects;
         /** Optional output redirection information */
         public final RedirectInfo redirect;
         /** Optional input redirection source file */
@@ -155,7 +164,9 @@ public class ShellParser {
          * @param redirect optional output redirect info (may be null)
          */
         public Segment(String commandName, String[] args, RedirectInfo redirect) {
-            this(commandName, args, redirect, null);
+            this(commandName, args,
+                    redirect == null ? Collections.emptyList() : List.of(redirect),
+                    null);
         }
 
         /**
@@ -168,20 +179,45 @@ public class ShellParser {
          * @throws IllegalArgumentException if commandName is blank or args is null
          */
         public Segment(String commandName, String[] args, RedirectInfo redirect, String inputRedirect) {
+            this(commandName, args,
+                    redirect == null ? Collections.emptyList() : List.of(redirect),
+                    inputRedirect);
+        }
+
+        /**
+         * Constructs a segment with full redirection support, including
+         * multiple output redirects in source order.
+         *
+         * @param commandName the command name (must not be blank)
+         * @param args the command arguments (must not be null)
+         * @param redirects ordered output redirect info list (must not be null)
+         * @param inputRedirect optional input redirect file (may be null)
+         * @throws IllegalArgumentException if commandName is blank, args is null,
+         *         or redirects is null
+         */
+        private Segment(String commandName, String[] args, List<RedirectInfo> redirects, String inputRedirect) {
             Preconditions.requireNonBlank(commandName, "Segment.commandName");
             Preconditions.requireNonNull(args, "Segment.args");
+            Preconditions.requireNonNull(redirects, "Segment.redirects");
 
             this.commandName = commandName;
             this.args = args;
-            this.redirect = redirect;
+            this.redirects = List.copyOf(redirects);
+            this.redirect = this.redirects.isEmpty() ? null : this.redirects.get(this.redirects.size() - 1);
             this.inputRedirect = inputRedirect;
         }
 
         @Override
         public String toString() {
-            return commandName + " " + String.join(" ", args)
-                    + (redirect != null ? " " + (redirect.isAppend() ? ">>" : ">") + " " + redirect.target : "")
-                    + (inputRedirect != null ? " < " + inputRedirect : "");
+            StringBuilder sb = new StringBuilder();
+            sb.append(commandName).append(" ").append(String.join(" ", args));
+            for (RedirectInfo info : redirects) {
+                sb.append(" ").append(info.isAppend() ? ">>" : ">").append(" ").append(info.target);
+            }
+            if (inputRedirect != null) {
+                sb.append(" < ").append(inputRedirect);
+            }
+            return sb.toString();
         }
     }
 
@@ -260,7 +296,7 @@ public class ShellParser {
      * @param inputRedirect optional input redirect file
      * @return the constructed segment
      */
-    private Segment buildSegment(List<String> words, RedirectInfo redirect, String inputRedirect) {
+    private Segment buildSegment(List<String> words, List<RedirectInfo> redirects, String inputRedirect) {
         assert words != null && !words.isEmpty()
             : "buildSegment() requires a non-empty word list";
 
@@ -269,8 +305,7 @@ public class ShellParser {
         for(int i = 1; i < words.size(); i++) {
             args[i-1] = words.get(i);
         }
-
-        return new Segment(commandName, args, redirect, inputRedirect);
+        return new Segment(commandName, args, redirects, inputRedirect);
     }
 
     /**
@@ -325,7 +360,12 @@ public class ShellParser {
                     // Backslash escaping outside quotes
                     if (i + 1 < input.length()) {
                         i++;
-                        current.append(input.charAt(i));
+                        char escaped = input.charAt(i);
+                        if (escaped == '$') {
+                            current.append(ESCAPED_DOLLAR_MARKER);
+                        } else {
+                            current.append(escaped);
+                        }
                     } else {
                         current.append(c);
                     }
@@ -405,7 +445,11 @@ public class ShellParser {
                     }
                     char next = input.charAt(i + 1);
                     if (next == '$' || next == '`' || next == '"' || next == '\\') {
-                        current.append(next);
+                        if (next == '$') {
+                            current.append(ESCAPED_DOLLAR_MARKER);
+                        } else {
+                            current.append(next);
+                        }
                         i++;
                     } else if (next == '\n') {
                         i++;
@@ -420,6 +464,10 @@ public class ShellParser {
                 assert false : "Unhandled tokenizer state: " + state;
                 break;
             }
+        }
+
+        if (state != State.NORMAL) {
+            throw new IllegalArgumentException("syntax error: unterminated quoted string");
         }
 
         // Flushing any remaining token
@@ -448,7 +496,7 @@ public class ShellParser {
         // On REDIRECT/APPEND: consume the next WORD as the redirect target
         // ON PIPE/AND/SEMICOLON: finalize the current segment, record operator
         List<String> currentWords = new ArrayList<>();
-        RedirectInfo currentRedirect = null;
+        List<RedirectInfo> currentRedirects = new ArrayList<>();
         String currentInputRedirect = null;
         boolean expectRedirectTarget = false;
         boolean expectInputRedirectTarget = false;
@@ -458,7 +506,7 @@ public class ShellParser {
             if (expectRedirectTarget) {
                 // The token immediately after > or >> is considered the target file path
                 if (tok.type == TokenType.WORD) {
-                    currentRedirect = new RedirectInfo(pendingRedirectOp, tok.value);
+                    currentRedirects.add(new RedirectInfo(pendingRedirectOp, tok.value));
                     expectRedirectTarget = false;
                     pendingRedirectOp = null;
                     continue;
@@ -496,9 +544,9 @@ public class ShellParser {
             case PIPE, AND, SEMICOLON, OR:
                 // Finalizing the current segment before recording the operator
                 if (!currentWords.isEmpty()) {
-                    segments.add(buildSegment(currentWords, currentRedirect, currentInputRedirect));
+                    segments.add(buildSegment(currentWords, currentRedirects, currentInputRedirect));
                     currentWords.clear();
-                    currentRedirect = null;
+                    currentRedirects = new ArrayList<>();
                     currentInputRedirect = null;
                 }
                 operators.add(tok.type);
@@ -510,12 +558,12 @@ public class ShellParser {
 
         // Finalizing the last segment (no trailing operator)
         if (!currentWords.isEmpty()) {
-            segments.add(buildSegment(currentWords, currentRedirect, currentInputRedirect));
+            segments.add(buildSegment(currentWords, currentRedirects, currentInputRedirect));
         }
 
         // A redirect target was consumed but there is no command to attach it to (#209)
         // e.g. "< file" or "> file" with nothing preceding it.
-        if (currentWords.isEmpty() && (currentRedirect != null || currentInputRedirect != null)) {
+        if (currentWords.isEmpty() && (!currentRedirects.isEmpty() || currentInputRedirect != null)) {
             throw new IllegalArgumentException("syntax error: redirection without a command");
         }
 

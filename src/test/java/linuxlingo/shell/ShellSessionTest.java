@@ -11,12 +11,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import linuxlingo.shell.utility.ExitCodes;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.Timeout;
 
 import linuxlingo.cli.Ui;
+import linuxlingo.shell.utility.ExitCodes;
 import linuxlingo.shell.vfs.VirtualFileSystem;
 
 /**
@@ -64,7 +64,7 @@ class ShellSessionTest {
         vfs.writeFile("/data.txt", "/", "apple\nbanana\ncherry", false);
         CommandResult result = session.executeOnce("cat /data.txt | head -n 1");
         assertTrue(result.isSuccess());
-        assertEquals("apple", result.getStdout());
+        assertEquals("apple\n", result.getStdout());
     }
 
     @Test
@@ -144,7 +144,57 @@ class ShellSessionTest {
         vfs.writeFile("/data.txt", "/", "banana\napple\ncherry\napple", false);
         CommandResult result = session.executeOnce("cat /data.txt | sort | head -n 2");
         assertTrue(result.isSuccess());
-        assertEquals("apple\napple", result.getStdout());
+        assertEquals("apple\napple\n", result.getStdout());
+    }
+
+    @Test
+    void executeOnce_escapedDollar_keepsLiteralVariableName() {
+        ShellSession session = createSession("");
+        CommandResult result = session.executeOnce("echo \\$HOME");
+
+        assertTrue(result.isSuccess());
+        assertEquals("$HOME\n", result.getStdout());
+    }
+
+    @Test
+    void executeOnce_lsEmptyQuotedPath_treatedAsExplicitMissingPath() {
+        ShellSession session = createSession("");
+        CommandResult result = session.executeOnce("ls \"\"");
+
+        assertFalse(result.isSuccess());
+        assertTrue(result.getStderr().contains("No such file")
+                || result.getStderr().contains("cannot access")
+                || result.getStderr().contains("not found"));
+    }
+
+    @Test
+    void executeOnce_unmatchedGlob_keepsLiteralArgumentForLs() {
+        ShellSession session = createSession("");
+        CommandResult result = session.executeOnce("ls *.xyz");
+
+        assertFalse(result.isSuccess());
+        assertTrue(result.getStderr().contains("*.xyz"),
+                "Unmatched glob should be passed through literally: " + result.getStderr());
+    }
+
+    @Test
+    void executeOnce_multipleRedirects_truncatesIntermediateFileAndWritesLastTarget() {
+        ShellSession session = createSession("");
+        session.executeOnce("echo hello > /tmp/out.txt > /tmp/out2.txt");
+
+        assertTrue(vfs.exists("/tmp/out.txt", "/"));
+        assertTrue(vfs.exists("/tmp/out2.txt", "/"));
+        assertEquals("", vfs.readFile("/tmp/out.txt", "/"));
+        assertEquals("hello\n", vfs.readFile("/tmp/out2.txt", "/"));
+    }
+
+    @Test
+    void executeOnce_pipeIntoEcho_echoIgnoresIncomingStdin() {
+        ShellSession session = createSession("");
+        CommandResult result = session.executeOnce("echo hello | echo world");
+
+        assertTrue(result.isSuccess());
+        assertEquals("world\n", result.getStdout());
     }
 
     @Test
@@ -206,10 +256,10 @@ class ShellSessionTest {
     }
 
     @Test
-    void expandVariables_unknownVar_keepsLiteral() {
+    void expandVariables_unknownVar_expandsToEmpty() {
         ShellSession session = createSession("");
         String[] result = session.expandVariables(new String[]{"$UNKNOWN"});
-        assertEquals("$UNKNOWN", result[0]);
+        assertEquals("", result[0]);
     }
 
     @Test

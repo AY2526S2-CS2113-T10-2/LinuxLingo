@@ -48,7 +48,7 @@ public class WcCommandTest {
         CommandResult result = command.execute(session, args, null);
 
         assertFalse(result.isSuccess());
-        assertEquals("wc: " + command.getUsage(), result.getStderr());
+        assertEquals("wc: wc [-l] [-w] [-c] [file ...]", result.getStderr());
     }
 
     // ─── From NewFeatureTest: WcAlignment ────────────────────────
@@ -77,9 +77,7 @@ public class WcCommandTest {
         String[] args = {"a.txt", "b.txt"};
         CommandResult result = command.execute(session, args, null);
         assertTrue(result.isSuccess());
-        assertTrue(result.getStdout().contains("total"));
-        assertTrue(result.getStdout().contains("a.txt"));
-        assertTrue(result.getStdout().contains("b.txt"));
+        assertEquals(" 0  2 11 a.txt\n 1  5 20 b.txt\n 1  7 31 total", result.getStdout());
     }
 
     @Test
@@ -106,7 +104,7 @@ public class WcCommandTest {
         String[] args = {"x.txt", "y.txt"};
         CommandResult result = command.execute(session, args, null);
         assertTrue(result.isSuccess());
-        assertTrue(result.getStdout().contains("total"));
+        assertEquals(" 0  2 11 x.txt\n 1  5 20 y.txt\n 1  7 31 total", result.getStdout());
     }
 
     // ─── Missing edge-case tests ──────────────────────────────────
@@ -116,6 +114,8 @@ public class WcCommandTest {
         String[] args = {"ghost.txt"};
         CommandResult result = command.execute(session, args, null);
         assertFalse(result.isSuccess());
+        assertTrue(result.getStderr().contains("ghost.txt"));
+        assertTrue(result.getStderr().contains("No such file or directory"));
     }
 
     @Test
@@ -125,7 +125,7 @@ public class WcCommandTest {
         String[] args = {"empty.txt"};
         CommandResult result = command.execute(session, args, null);
         assertTrue(result.isSuccess());
-        assertTrue(result.getStdout().contains("0"));
+        assertEquals("0 0 0 empty.txt", result.getStdout());
     }
 
     @Test
@@ -145,13 +145,23 @@ public class WcCommandTest {
     }
 
     @Test
+    public void wc_noTrailingNewline_matchesUnixLineWordCharCounts() {
+        vfs.createFile("/counts.txt", "/");
+        vfs.writeFile("/counts.txt", "/", "b\na\na", false);
+
+        String[] args = {"counts.txt"};
+        CommandResult result = command.execute(session, args, null);
+
+        assertTrue(result.isSuccess());
+        assertTrue(result.getStdout().matches("\\s*2\\s+3\\s+5\\s+counts\\.txt"),
+                "wc should report 2 lines, 3 words, and 5 characters: " + result.getStdout());
+    }
+
+    @Test
     public void wc_stdIn_countsPipedInput() {
         CommandResult result = command.execute(session, new String[]{}, "hello world\nlinux lingo");
         assertTrue(result.isSuccess());
-        // Should count lines, words, chars in piped input
-        String out = result.getStdout();
-        assertTrue(out.contains("2") || out.contains("4"),
-                "stdin wc should count lines and words, got: " + out);
+        assertEquals(" 1  4 23", result.getStdout());
     }
 
     @Test
@@ -159,5 +169,7 @@ public class WcCommandTest {
         String[] args = {"/tmp"};
         CommandResult result = command.execute(session, args, null);
         assertFalse(result.isSuccess());
+        assertTrue(result.getStderr().contains("/tmp"));
+        assertTrue(result.getStderr().toLowerCase().contains("directory"));
     }
 }

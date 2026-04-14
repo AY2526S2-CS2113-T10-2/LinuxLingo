@@ -75,7 +75,9 @@ public class LsCommandTest {
     public void ls_nonExistentDir_returnsError() {
         CommandResult result = command.execute(session, new String[]{"/nonexistent"}, null);
         assertFalse(result.isSuccess());
-        assertTrue(result.getStderr().startsWith("ls: "));
+        assertTrue(result.getStderr().contains("ls:"));
+        assertTrue(result.getStderr().contains("/nonexistent"));
+        assertTrue(result.getStderr().contains("No such file or directory"));
     }
 
     @Test

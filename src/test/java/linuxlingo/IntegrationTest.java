@@ -113,7 +113,7 @@ public class IntegrationTest {
         vfs.writeFile("/data.txt", "/", "cherry\napple\nbanana\ndate", false);
         CommandResult result = session.executeOnce("cat /data.txt | sort | head -n 2");
         assertTrue(result.isSuccess());
-        assertEquals("apple\nbanana", result.getStdout());
+        assertEquals("apple\nbanana\n", result.getStdout());
     }
 
     @Test
@@ -754,7 +754,7 @@ public class IntegrationTest {
         vfs.writeFile("/tmp/tosort.txt", "/", "cherry\napple\nbanana\ndate\nelm", false);
         CommandResult result = session.executeOnce("sort < /tmp/tosort.txt | head -n 3");
         assertTrue(result.isSuccess());
-        assertEquals("apple\nbanana\ncherry", result.getStdout());
+        assertEquals("apple\nbanana\ncherry\n", result.getStdout());
     }
 
     // ─── Edge Case: Whitespace-Only Input ───────────────────────

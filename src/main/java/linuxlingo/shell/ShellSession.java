@@ -74,6 +74,10 @@ public class ShellSession {
     private final List<String> commandHistory;
     /** Ordered output from the last runPlan() call, for interactive display. */
     private String lastOrderedOutput = "";
+    /** Parse error from the last attempted plan execution. */
+    private String lastParseError = "";
+    /** Tracks whether the latest error was already emitted directly to the UI. */
+    private boolean lastResultAlreadyPrinted = false;
 
     public ShellSession(VirtualFileSystem vfs, Ui ui) {
         if (vfs == null) {
@@ -211,6 +215,10 @@ public class ShellSession {
      */
     private void executePlan(String input) {
         CommandResult result = runPlan(input);
+        if (lastResultAlreadyPrinted) {
+            lastResultAlreadyPrinted = false;
+            return;
+        }
         // Use ordered output for interactive display to preserve
         // correct interleaving of stdout and stderr (#147, #161, #162)
         if (result != null && !lastOrderedOutput.isEmpty()) {
@@ -248,8 +256,14 @@ public class ShellSession {
      *         success result if the input produced no segments
      */
     private CommandResult runPlan(String input) {
+        lastResultAlreadyPrinted = false;
         ShellParser.ParsedPlan plan = parseInput(input);
-        if (plan == null || plan.segments.isEmpty()) {
+        if (plan == null) {
+            lastOrderedOutput = "";
+            return CommandResult.of("", lastParseError, ExitCodes.SYNTAX_ERROR, false);
+        }
+        if (plan.segments.isEmpty()) {
+            lastOrderedOutput = "";
             return CommandResult.success("");
         }
 
@@ -281,11 +295,16 @@ public class ShellSession {
                 pipedStdin = null;
             }
 
-            String stdin = resolveStdin(segment, pipedStdin);
-            if (stdin == null && segment.inputRedirect != null) {
-                // resolveStdin failed — error already printed, skip this segment
+            String stdin;
+            try {
+                stdin = resolveStdin(segment, pipedStdin);
+            } catch (linuxlingo.shell.vfs.VfsException e) {
+                String errorMsg = e.getMessage();
+                appendToOrderedOutput(orderedOutput, errorMsg);
+                appendToAccumulator(accumulatedStderr, errorMsg);
+                setLastExitCode(ExitCodes.GENERAL_ERROR);
+                lastResult = CommandResult.of("", errorMsg, ExitCodes.GENERAL_ERROR, false);
                 pipedStdin = null;
-                lastResult = CommandResult.error("redirect failed");
                 continue;
             }
             pipedStdin = null;
@@ -322,9 +341,14 @@ public class ShellSession {
                 appendToAccumulator(accumulatedStderr, warning);
             }
 
-            result = applyOutputRedirect(segment, result);
-            if (result == null) {
-                lastResult = CommandResult.error("redirect write failed");
+            try {
+                result = applyOutputRedirect(segment, result);
+            } catch (linuxlingo.shell.vfs.VfsException e) {
+                String errorMsg = e.getMessage();
+                appendToOrderedOutput(orderedOutput, errorMsg);
+                appendToAccumulator(accumulatedStderr, errorMsg);
+                setLastExitCode(ExitCodes.GENERAL_ERROR);
+                lastResult = CommandResult.of("", errorMsg, ExitCodes.GENERAL_ERROR, false);
                 continue;
             }
 
@@ -379,14 +403,17 @@ public class ShellSession {
     private ShellParser.ParsedPlan parseInput(String input) {
         try {
             ShellParser.ParsedPlan plan = new ShellParser().parse(input);
+            lastParseError = "";
+            lastResultAlreadyPrinted = false;
             if (plan.segments.isEmpty()) {
                 LOGGER.fine("runPlan: no segments to execute");
             }
             return plan;
         } catch (IllegalArgumentException e) {
-            String errorMsg = e.getMessage();
-            ui.println(errorMsg);
+            lastParseError = e.getMessage();
+            ui.println(lastParseError);
             setLastExitCode(ExitCodes.SYNTAX_ERROR);
+            lastResultAlreadyPrinted = true;
             return null;
         }
     }
@@ -463,15 +490,7 @@ public class ShellSession {
         if (segment.inputRedirect == null || segment.inputRedirect.isEmpty()) {
             return pipedStdin;
         }
-        try {
-            return vfs.readFile(segment.inputRedirect, workingDir);
-        } catch (linuxlingo.shell.vfs.VfsException e) {
-            String errorMsg = e.getMessage();
-            ui.println(errorMsg);
-            LOGGER.warning(() -> "Input redirect failed: " + errorMsg);
-            setLastExitCode(ExitCodes.GENERAL_ERROR);
-            return null;
-        }
+        return vfs.readFile(segment.inputRedirect, workingDir);
     }
 
     /**
@@ -528,21 +547,18 @@ public class ShellSession {
         if (segment.redirect == null) {
             return result;
         }
-        try {
+        List<ShellParser.RedirectInfo> redirects = segment.redirects;
+        for (int i = 0; i < redirects.size(); i++) {
+            ShellParser.RedirectInfo redirect = redirects.get(i);
+            boolean isLastRedirect = i == redirects.size() - 1;
             vfs.writeFile(
-                    segment.redirect.target,
+                    redirect.target,
                     workingDir,
-                    result.getStdout(),
-                    segment.redirect.isAppend()
+                    isLastRedirect ? result.getStdout() : "",
+                    redirect.isAppend()
             );
-            return CommandResult.success("");
-        } catch (linuxlingo.shell.vfs.VfsException e) {
-            String errorMsg = e.getMessage();
-            ui.println(errorMsg);
-            LOGGER.warning(() -> "Output redirect failed: " + errorMsg);
-            setLastExitCode(ExitCodes.GENERAL_ERROR);
-            return null;
         }
+        return CommandResult.success("");
     }
 
     /**
@@ -795,7 +811,7 @@ public class ShellSession {
                 expanded.add(arg);
             }
         }
-        return expanded.toArray(new String[0]);
+        return expanded.toArray(String[]::new);
     }
 
     /**
@@ -850,7 +866,7 @@ public class ShellSession {
                 expanded.addAll(matches);
             }
         }
-        return expanded.toArray(new String[0]);
+        return expanded.toArray(String[]::new);
     }
 
     /**
@@ -885,20 +901,17 @@ public class ShellSession {
 
         try {
             List<String> matches = new ArrayList<>();
-            if (isRelative) {
-                // For patterns without a path separator (e.g. *.txt),
-                // only match immediate children of the current directory
-                FileNode dir = vfs.resolve(directoryPart, workingDir);
-                if (dir.isDirectory()) {
-                    for (FileNode child : ((Directory) dir).getChildren()) {
-                        if (VirtualFileSystem.matchesWildcard(namePattern, child.getName())) {
-                            matches.add(child.getName());
-                        }
+            boolean includeHidden = namePattern.startsWith(".");
+            FileNode dir = vfs.resolve(directoryPart, workingDir);
+            if (dir.isDirectory()) {
+                String basePath = isRelative ? "" : vfs.getAbsolutePath(directoryPart, workingDir);
+                for (FileNode child : ((Directory) dir).getChildren()) {
+                    if (!includeHidden && child.getName().startsWith(".")) {
+                        continue;
                     }
-                }
-            } else {
-                for (FileNode node : vfs.findByName(directoryPart, workingDir, namePattern)) {
-                    matches.add(node.getAbsolutePath());
+                    if (VirtualFileSystem.matchesWildcard(namePattern, child.getName())) {
+                        matches.add(isRelative ? child.getName() : joinGlobMatch(basePath, child.getName()));
+                    }
                 }
             }
             Collections.sort(matches);
@@ -906,6 +919,13 @@ public class ShellSession {
         } catch (RuntimeException e) {
             return new ArrayList<>();
         }
+    }
+
+    private String joinGlobMatch(String basePath, String childName) {
+        if ("/".equals(basePath)) {
+            return "/" + childName;
+        }
+        return basePath + "/" + childName;
     }
 
     /**
@@ -965,13 +985,18 @@ public class ShellSession {
      * @return the string with variables expanded
      */
     private String expandVariablesInString(String input) {
-        if (input == null || !input.contains("$")) {
+        if (input == null || (!input.contains("$") && input.indexOf(ShellParser.ESCAPED_DOLLAR_MARKER) < 0)) {
             return input;
         }
 
         StringBuilder sb = new StringBuilder();
         for (int i = 0; i < input.length(); i++) {
-            if (input.charAt(i) == '$' && i + 1 < input.length()) {
+            char current = input.charAt(i);
+            if (current == ShellParser.ESCAPED_DOLLAR_MARKER) {
+                sb.append('$');
+                continue;
+            }
+            if (current == '$' && i + 1 < input.length()) {
                 if (input.charAt(i + 1) == '?') {
                     sb.append(lastExitCode);
                     i++; // skip '?'
@@ -988,18 +1013,13 @@ public class ShellSession {
 
                 if (end > start) {
                     String varName = input.substring(start, end);
-                    String value = resolveVariable(varName);
-                    if (value != null) {
-                        sb.append(value);
-                    } else {
-                        sb.append('$').append(varName);
-                    }
+                    sb.append(resolveVariable(varName));
                     i = end - 1; // advance past variable name
                 } else {
                     sb.append('$');
                 }
             } else {
-                sb.append(input.charAt(i));
+                sb.append(current);
             }
         }
         return sb.toString();
@@ -1012,15 +1032,11 @@ public class ShellSession {
      * @return the value, or null if not a recognized variable
      */
     private String resolveVariable(String name) {
-        switch (name) {
-        case "USER":
-            return "user";
-        case "HOME":
-            return "/home/user";
-        case "PWD":
-            return workingDir;
-        default:
-            return null;
-        }
+        return switch (name) {
+        case "USER" -> "user";
+        case "HOME" -> "/home/user";
+        case "PWD" -> workingDir;
+        default -> "";
+        };
     }
 }

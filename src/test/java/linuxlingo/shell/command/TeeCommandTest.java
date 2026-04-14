@@ -66,7 +66,7 @@ public class TeeCommandTest {
         String[] args = {};
         CommandResult result = command.execute(session, args, "data");
         assertFalse(result.isSuccess());
-        assertEquals("tee: " + command.getUsage(), result.getStderr());
+        assertEquals("tee: tee [-a] <file> [file2...]", result.getStderr());
     }
 
     @Test
@@ -74,7 +74,7 @@ public class TeeCommandTest {
         String[] args = {"-x", "/out.txt"};
         CommandResult result = command.execute(session, args, "data");
         assertFalse(result.isSuccess());
-        assertEquals("tee: " + command.getUsage(), result.getStderr());
+        assertEquals("tee: tee [-a] <file> [file2...]", result.getStderr());
     }
 
     @Test

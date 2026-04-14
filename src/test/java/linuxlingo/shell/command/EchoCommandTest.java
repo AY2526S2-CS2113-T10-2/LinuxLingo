@@ -122,4 +122,13 @@ public class EchoCommandTest {
         assertTrue(result.isSuccess());
         assertEquals("-e hello\\nworld\n", result.getStdout());
     }
+
+    @Test
+    public void echo_twoEmptyArgs_joinsThemWithSingleSpace() {
+        String[] args = {"", ""};
+        CommandResult result = command.execute(session, args, null);
+
+        assertTrue(result.isSuccess());
+        assertEquals(" \n", result.getStdout());
+    }
 }

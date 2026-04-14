@@ -206,6 +206,22 @@ class ShellParserTest {
     }
 
     @Test
+    public void parse_emptyDoubleQuotedString_preservedAsExplicitArg() {
+        ShellParser.ParsedPlan plan = parser.parse("ls \"\"");
+        assertEquals(1, plan.segments.size());
+        assertEquals(1, plan.segments.get(0).args.length);
+        assertEquals("", plan.segments.get(0).args[0]);
+    }
+
+    @Test
+    public void parse_emptySingleQuotedString_preservedAsExplicitArg() {
+        ShellParser.ParsedPlan plan = parser.parse("ls ''");
+        assertEquals(1, plan.segments.size());
+        assertEquals(1, plan.segments.get(0).args.length);
+        assertEquals(ShellParser.SINGLE_QUOTE_MARKER, plan.segments.get(0).args[0]);
+    }
+
+    @Test
     public void parse_singleQuotes_suppressesGlobExpansion() {
         ShellParser.ParsedPlan plan = parser.parse("echo '*.txt'");
         assertEquals(1, plan.segments.size());
@@ -435,6 +451,16 @@ class ShellParserTest {
         // "ls |" — trailing pipe should be detected as a syntax error
         assertThrows(IllegalArgumentException.class, () -> parser.parse("ls |"),
                 "parse should throw IllegalArgumentException for trailing pipe");
+    }
+
+    @Test
+    public void parse_unterminatedDoubleQuote_rejectedAsMalformedInput() {
+        assertThrows(IllegalArgumentException.class, () -> parser.parse("echo \"hello"));
+    }
+
+    @Test
+    public void parse_unterminatedSingleQuote_rejectedAsMalformedInput() {
+        assertThrows(IllegalArgumentException.class, () -> parser.parse("echo 'hello"));
     }
 
     @Test

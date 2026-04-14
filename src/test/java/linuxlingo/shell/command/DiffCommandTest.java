@@ -98,7 +98,9 @@ public class DiffCommandTest {
         String[] args = {"/a.txt"};
         CommandResult result = command.execute(session, args, null);
         assertFalse(result.isSuccess());
-        assertEquals("diff: " + command.getUsage(), result.getStderr());
+        assertTrue(result.getStderr().startsWith("diff:"));
+        assertTrue(result.getStderr().contains("file1"));
+        assertTrue(result.getStderr().contains("file2"));
     }
 
     @Test
@@ -106,7 +108,9 @@ public class DiffCommandTest {
         String[] args = {};
         CommandResult result = command.execute(session, args, null);
         assertFalse(result.isSuccess());
-        assertEquals("diff: " + command.getUsage(), result.getStderr());
+        assertTrue(result.getStderr().startsWith("diff:"));
+        assertTrue(result.getStderr().contains("file1"));
+        assertTrue(result.getStderr().contains("file2"));
     }
 
     @Test

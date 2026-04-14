@@ -88,11 +88,25 @@ public class HeadCommand implements Command {
         }
 
         String[] linesArray = content.split("\n", -1);
-        int end = (n >= 0) ? Math.min(n, linesArray.length) : Math.max(0, linesArray.length + n);
+        boolean endsWithNewline = content.endsWith("\n");
+        int logicalLineCount = endsWithNewline ? linesArray.length - 1 : linesArray.length;
+        int end = (n >= 0) ? Math.min(n, logicalLineCount) : Math.max(0, logicalLineCount + n);
 
-        for (int i = 0; i < end; i++) {
-            output.add(linesArray[i]);
+        if (end == 0) {
+            return;
         }
+
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < end; i++) {
+            sb.append(linesArray[i]);
+
+            boolean isLastSelectedLine = i == end - 1;
+            if (!isLastSelectedLine || endsWithNewline) {
+                sb.append("\n");
+            }
+        }
+
+        output.add(sb.toString());
     }
 
     @Override

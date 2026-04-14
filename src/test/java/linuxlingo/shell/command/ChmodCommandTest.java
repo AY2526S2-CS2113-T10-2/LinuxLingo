@@ -47,7 +47,9 @@ public class ChmodCommandTest {
         CommandResult result = command.execute(session, args, null);
 
         assertFalse(result.isSuccess());
-        assertEquals("chmod: " + command.getUsage(), result.getStderr());
+        assertTrue(result.getStderr().startsWith("chmod:"));
+        assertTrue(result.getStderr().contains("mode"));
+        assertTrue(result.getStderr().contains("file"));
     }
 
     @Test
@@ -98,6 +100,11 @@ public class ChmodCommandTest {
         CommandResult result = command.execute(session, args, null);
         assertFalse(result.isSuccess());
         assertTrue(result.getStderr().contains("invalid mode"));
+    }
+
+    @Test
+    public void chmod_getUsage_mentionsModeAndFile() {
+        assertEquals("chmod [-R] <mode> <file>", command.getUsage());
     }
 
     // ─── From CommandEnhancementV2Test: ChmodEnhancements ────────

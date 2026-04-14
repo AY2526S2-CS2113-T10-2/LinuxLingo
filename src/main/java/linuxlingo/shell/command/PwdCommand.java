@@ -6,6 +6,10 @@ import linuxlingo.shell.ShellSession;
 public class PwdCommand implements Command {
     @Override
     public CommandResult execute(ShellSession session, String[] args, String stdin) {
+        if (args.length > 0) {
+            return CommandResult.error("pwd: too many arguments");
+        }
+
         String cwd = session.getWorkingDir();
         // Detect dangling working directory reference (#146)
         if (!session.getVfs().exists(cwd, "/")) {
