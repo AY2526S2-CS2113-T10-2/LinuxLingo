@@ -52,7 +52,6 @@
     - Ensure IntelliJ is set to use **JDK 17**: `File → Project Structure → Project SDK`.
     - Import the project as a **Gradle project**
 
-
 3. **Building the project:**
 
 ```shell
@@ -267,17 +266,19 @@ The engine tracks two pieces of state across iterations: `pipedStdin` (the stdou
 
 ![Run Plan Sequence Diagram](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/AY2526S2-CS2113-T10-2/tp/master/docs/diagrams/RunPlanSequence.puml)
 
-#### Key Behaviour:
+#### Key Behaviour
+
 Exit propagation: The `shouldExit()` flag on `CommandResult` causes `runPlan()` to set  
   `running = false` and break the loop immediately.
 
 ---
+
 #### Execution walkthrough: `echo hello | grep h > output.txt`
 
 **Stage 1 (Tokenization):** produces the flat token list:
 
 | # | Value | Type |
-|---|-------|------|
+| --- | ------- | ------ |
 | 1 | `echo` | WORD |
 | 2 | `hello` | WORD |
 | 3 | `\|` | PIPE |
@@ -288,17 +289,18 @@ Exit propagation: The `shouldExit()` flag on `CommandResult` causes `runPlan()` 
 
 **Stage 2 (Plan building):** splits on the PIPE and consumes `output.txt`
 as a redirect target, yielding a `ParsedPlan` with:
+
 - Segment 1: `echo [hello]`, no redirect
 - Segment 2: `grep [h]`, redirect `> output.txt`
 - Operator: `[PIPE]`
 
 **Stage 3 (Execution):** (`runPlan()`): the sequence diagram below shows
 how `ShellSession` orchestrates the two segments. Key points to note:
+
 - `echo`'s stdout (`"hello"`) is forwarded as `pipedStdin` to `grep`
 - After `grep` executes, its stdout is written to `output.txt` via the
   VFS rather than printed to the terminal (the result is replaced with
   an empty success)
-
 
 ![Echo Grep Pipe Execution Sequence](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/AY2526S2-CS2113-T10-2/tp/master/docs/diagrams/EchoGrepPipeSequence.puml)
 
@@ -357,7 +359,6 @@ The following activity diagram shows the input resolution logic for commands tha
 
 Variables inside single-quoted strings are not expanded (single-quoted tokens are marked with a `\0` prefix during tokenization). The `expandVariablesInString()` method scans each argument character-by-character, recognises `$` followed by an alphanumeric name or `?`, and substitutes the resolved value.
 
-
 ---
 
 ### Glob Expansion
@@ -369,7 +370,6 @@ Glob patterns (`*` and `?`) in command arguments are expanded against the VFS be
 3. **Fallback:** If no VFS paths match a glob pattern, the literal pattern is passed through unchanged (standard shell behaviour).
 
 Matching uses `VirtualFileSystem.matchesWildcard()`, which converts `*` → `.*` and `?` → `.` to build a regex.
-
 
 ---
 

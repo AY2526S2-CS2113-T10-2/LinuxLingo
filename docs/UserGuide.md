@@ -416,6 +416,7 @@ Format: `find [DIRECTORY] [-name PATTERN] [-type TYPE] [-size SIZE]`
 Examples:
 
 - `find /home -name "*.txt"` -- find all `.txt` files under `/home`.
+
     ```text
     user@linuxlingo:/$ touch /home/a.txt /home/b.txt
     user@linuxlingo:/$ find /home -name "*.txt"
@@ -440,6 +441,7 @@ Format: `wc [-l] [-w] [-c] [FILE...]`
 Examples:
 
 - `wc readme.txt` -- show line, word, and character counts.
+
     ```text
     user@linuxlingo:/home/user$ echo "hello" > hello.txt
     user@linuxlingo:/home/user$ wc hello.txt
@@ -447,6 +449,7 @@ Examples:
     ```
 
 - `echo "hello world" | wc -w` -- count words in piped input.
+
     ```text
     user@linuxlingo:/home/user$ echo "hello" | wc -w
     1
@@ -612,13 +615,14 @@ Creates a shortcut for a longer command, lists all defined shortcuts, or looks u
 
 Format: `alias [NAME=VALUE]`
 
-* `NAME` is the shortcut you want to type.
-* `VALUE` is the command it expands to. Wrap `VALUE` in quotes when it contains spaces.
+- `NAME` is the shortcut you want to type.
+- `VALUE` is the command it expands to. Wrap `VALUE` in quotes when it contains spaces.
 
 Examples:
-* `alias` -- lists all currently defined aliases.
-* `alias ll='ls -l'` -- typing `ll` will now run `ls -l`.
-* `alias ll` -- shows what `ll` currently expands to.
+
+- `alias` -- lists all currently defined aliases.
+- `alias ll='ls -l'` -- typing `ll` will now run `ls -l`.
+- `alias ll` -- shows what `ll` currently expands to.
 
 > **Tip:** Aliases can chain. If `mypwd2` is aliased to `mypwd` and `mypwd` is itself aliased to something else, LinuxLingo follows the chain automatically.
 >
@@ -632,14 +636,14 @@ Removes one or more previously defined aliases.
 
 Format: `unalias NAME [NAME]...` or `unalias -a`
 
-* Provide one or more names to remove them individually.
-* Use `-a` to remove all defined aliases at once.
+- Provide one or more names to remove them individually.
+- Use `-a` to remove all defined aliases at once.
 
 Examples:
-* `unalias ll` -- removes the `ll` alias.
-* `unalias ll la` -- removes both `ll` and `la`.
-* `unalias -a` -- clears all aliases.
 
+- `unalias ll` -- removes the `ll` alias.
+- `unalias ll la` -- removes both `ll` and `la`.
+- `unalias -a` -- clears all aliases.
 
 ![Unalias_Example.png](docs/imgs/UnaliasCommandExample.png)
 
@@ -651,13 +655,13 @@ Shows a numbered list of previously entered commands.
 
 Format: `history [-c] [N]`
 
-* `history` -- shows all commands entered this session, numbered from 1.
-* `history N` -- shows only the last `N` commands. (including the current command)
-* `history -c` -- clears the history.
+- `history` -- shows all commands entered this session, numbered from 1.
+- `history N` -- shows only the last `N` commands. (including the current command)
+- `history -c` -- clears the history.
 
 Example:
 
-```
+```text
 user@linuxlingo:/$ history
     1  ls
     2  cd /home/user
@@ -668,7 +672,6 @@ user@linuxlingo:/$ history
 >
 >![History_Example.png](docs/imgs/HistoryCommandExample.png)
 ---
-
 
 ### Environment Management Commands
 
