@@ -385,13 +385,39 @@ When a command name is not found in the registry, `ShellSession.suggestCommand()
 
 ### VFS Environment Persistence
 
-Users can save and load VFS snapshots through the `save`, `load`, `reset`, `envlist`, and `envdelete` commands. The `VfsSerializer` handles the conversion.
+Users can save and load VFS snapshots through the `save`, `load`, `reset`, `envlist`, and `envdelete` commands. The `VfsSerializer` class handles serialization and deserialization of VFS state to and from a plain-text `.env` file format.
 
-**Save/Load flow:**
+#### Design Overview
+
+The persistence system is split into two responsibilities:
+
+- **`VfsSerializer`** — converts a `VirtualFileSystem` object to/from the `.env` text format. It is a pure conversion utility with no I/O side effects; it takes/returns `String` content.
+- **`Storage`** — handles the actual file I/O (reading from and writing to `data/environments/<name>.env` on disk). It delegates format conversion to `VfsSerializer`.
+
+This separation means `VfsSerializer` can be unit-tested independently of the filesystem, and the storage layer can be swapped without touching serialization logic.
+
+#### Save/Load Flow
+
+When the user runs `save myenv`, the following sequence occurs:
+
+1. `SaveCommand` calls `Storage.save(name, vfs, workingDir)`.
+2. `Storage` calls `VfsSerializer.serialize(vfs, workingDir)` to get the `.env` file content as a `String`.
+3. `Storage` writes the string to `data/environments/myenv.env`.
+
+When the user runs `load myenv`:
+
+1. `LoadCommand` calls `Storage.load(name)`.
+2. `Storage` reads the file content and calls `VfsSerializer.deserialize(content)`.
+3. `VfsSerializer` reconstructs a `VirtualFileSystem` and returns it wrapped in a `DeserializedVfs` record (which also carries the saved working directory).
+4. `LoadCommand` replaces the session's VFS and current directory with the deserialized values.
+
+**Save/Load sequence diagram:**
 
 ![Save Load Sequence Diagram](https://www.plantuml.com/plantuml/proxy?cache=no&src=https://raw.githubusercontent.com/AY2526S2-CS2113-T10-2/tp/master/docs/diagrams/SaveLoadSequence.puml)
 
-**`.env` file format:**
+#### `.env` File Format
+
+Each environment snapshot is a human-readable text file:
 
 ```text
 # LinuxLingo Virtual File System Snapshot
@@ -405,7 +431,129 @@ DIR  | /home          | rwxr-xr-x
 FILE | /etc/hostname  | rw-r--r-- | linuxlingo
 ```
 
-Content escaping rules: `\n` → newline, `\|` → literal pipe, `\\` → literal backslash.
+Each non-comment line encodes one VFS node:
+
+| Field | Description |
+| ----- | ----------- |
+| `TYPE` | `DIR` or `FILE` |
+| `PATH` | Absolute path within the VFS |
+| `PERMISSIONS` | 9-character Unix permission string e.g. `rwxr-xr-x` |
+| `CONTENT` | File content (omitted for directories); special characters escaped |
+
+**Escaping rules for file content:**
+
+| Escape sequence | Meaning |
+| --------------- | ------- |
+| `\n` | Newline character |
+| `\|` | Literal pipe character (since `|` is the field delimiter) |
+| `\\` | Literal backslash |
+
+#### Serialization Algorithm
+
+`VfsSerializer.serialize()` performs a depth-first walk of the VFS tree (parents before children) using a recursive helper. For each node it emits a `TYPE | PATH | PERMISSIONS [| CONTENT]` line. File content is passed through `escapeContent()` before writing to ensure the pipe delimiter is never ambiguous.
+
+#### Deserialization Algorithm
+
+`VfsSerializer.deserialize()` reads the file line by line:
+
+1. Lines starting with `#` are treated as comments and skipped.
+2. Each remaining line is split on ` | ` (space-pipe-space) into at most 4 fields.
+3. The first field determines node type (`DIR` or `FILE`).
+4. A `Directory` or `RegularFile` is created at the given path with the given permissions.
+5. For `FILE` nodes, the optional fourth field (content) is unescaped via `unescapeContent()` before being stored.
+
+If a line is malformed (wrong number of fields, unrecognised type), it is silently skipped to allow forward compatibility with future format extensions.
+
+#### Design Considerations
+
+**Why a plain-text format instead of JSON/binary?**
+
+A human-readable format means users can inspect and hand-edit saved environments in a text editor without needing special tools. It also makes the format trivially diffable in version control.
+
+**Why is `VfsSerializer` stateless?**
+
+All methods are static. There is no mutable state, which makes the class thread-safe and easy to test: pass in a `VirtualFileSystem`, get back a `String`; pass in a `String`, get back a `DeserializedVfs`. No setup or teardown required.
+
+**Alternative considered — serialising to JSON:**
+
+Using a JSON library (e.g., Gson) would have reduced boilerplate but added a dependency and produced a less human-readable output. Given the simple, fixed schema of the VFS, a bespoke text format was preferred.
+
+---
+
+### Tab Completion and Interactive Input
+
+LinuxLingo's interactive shell provides tab completion for command names and VFS paths, as well as persistent command history (up/down arrow keys). This is implemented using the [JLine 3](https://github.com/jline/jline3) library via two classes: `ShellLineReader` and `ShellCompleter`.
+
+#### Design Overview
+
+| Class | Responsibility |
+| ----- | -------------- |
+| `ShellLineReader` | Wraps JLine's `LineReader`; manages the terminal lifecycle, history, and graceful fallback to a dumb terminal |
+| `ShellCompleter` | Implements JLine's `Completer` interface; supplies command-name and VFS-path candidates |
+
+`ShellSession` creates a `ShellLineReader` at startup and calls `readLine(prompt)` on each iteration of the REPL loop. `ShellLineReader` creates a `ShellCompleter` internally and registers it with JLine so that pressing Tab triggers completion automatically.
+
+#### Tab Completion Logic
+
+`ShellCompleter.complete()` is called by JLine each time the user presses Tab. It inspects the parsed input line to decide which kind of completion to offer:
+
+- **Word index 0 (command position):** delegates to `completeCommandName()`, which iterates `CommandRegistry.getAllNames()` and all defined aliases, returning entries that start with the typed prefix.
+- **Word index > 0 (argument position):** delegates to `completePath()`, which resolves the partial path against the VFS to return matching file and directory names.
+
+**Path completion detail (`completePath`):**
+
+The partial path typed by the user is split at the last `/` into a *directory part* and a *name prefix*:
+
+| Partial input | Directory part | Name prefix |
+| ------------- | -------------- | ----------- |
+| `ho` | `.` (cwd) | `ho` |
+| `/home/u` | `/home` | `u` |
+| `/` | `/` | `` (empty) |
+
+`VirtualFileSystem.listDirectory()` is called on the directory part, and only children whose names start with the name prefix are included. Hidden files (names starting with `.`) are suppressed unless the user's prefix itself starts with `.`, matching standard shell behaviour. Directories have a trailing `/` appended to their candidate value so that pressing Tab on a directory name immediately positions the cursor for the next path component.
+
+#### Command History
+
+`ShellLineReader` configures JLine with a `DefaultHistory` instance. History is in-memory only for the current session (not persisted to disk). Users navigate history with the up/down arrow keys. The `getHistory()` and `addToHistory()` methods on `ShellLineReader` are exposed for unit testing without a real terminal.
+
+#### Terminal Fallback
+
+`ShellLineReader.create()` first attempts to open a system terminal via `TerminalBuilder`. If that fails (e.g., in a CI environment or when stdin is not a TTY), it falls back to `ShellLineReader.createDumb()`, which creates a dumb terminal. In dumb mode, tab completion and arrow-key history are unavailable, but the shell still accepts plain line input via standard `Scanner`-style reading, ensuring one-shot mode and testing remain unaffected.
+
+#### Sequence Diagram — Tab Completion
+
+The following diagram shows what happens when a user presses Tab mid-input:
+
+```
+User            ShellLineReader      JLine LineReader     ShellCompleter         VFS
+ |  [Tab key]        |                     |                    |                 |
+ |---------------->  |                     |                    |                 |
+ |                   | readLine(prompt)     |                    |                 |
+ |                   |-------------------> |                    |                 |
+ |                   |                     | complete(line)     |                 |
+ |                   |                     | -----------------> |                 |
+ |                   |                     |                    | listDirectory() |
+ |                   |                     |                    | --------------> |
+ |                   |                     |                    | <-------------- |
+ |                   |                     | [candidates]       |                 |
+ |                   |                     | <----------------- |                 |
+ |  [completions displayed]                |                    |                 |
+ | <-----------------                      |                    |                 |
+```
+
+#### Design Considerations
+
+**Why JLine instead of a custom implementation?**
+
+JLine handles terminal raw-mode switching, ANSI escape sequences, cross-platform terminal detection, and history navigation — hundreds of edge cases that would be prohibitively expensive to replicate correctly. Using JLine lets the implementation focus on the completion logic specific to LinuxLingo (VFS paths, aliases) rather than terminal I/O plumbing.
+
+**Why split `ShellLineReader` and `ShellCompleter`?**
+
+Separating the two classes allows `ShellCompleter` to be unit-tested independently of JLine's terminal infrastructure using the `getCommandCompletions()` and `getPathCompletions()` helper methods, which return plain `SortedSet<String>` without requiring a real terminal or JLine objects.
+
+**Alternative considered — reading from `System.in` directly:**
+
+A plain `BufferedReader` on `System.in` was used in early iterations. It was replaced by JLine because it provided no completion or history, making the shell significantly less usable. The fallback dumb-terminal path in `ShellLineReader` preserves this simpler behaviour for non-interactive contexts.
 
 ---
 
