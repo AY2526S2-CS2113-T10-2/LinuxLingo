@@ -1,5 +1,7 @@
 package linuxlingo;
 
+import java.io.PrintStream;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Path;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -35,6 +37,13 @@ public class LinuxLingo {
      * @param args command-line arguments; empty for interactive mode.
      */
     public static void main(String[] args) {
+        // Force UTF-8 on stdout/stderr so non-ASCII characters (e.g. Chinese,
+        // Japanese, Cyrillic) survive redirection and display on platforms
+        // whose default console encoding is not UTF-8 (notably Windows,
+        // where it defaults to cp1252). Fixes PE issue #29.
+        System.setOut(new PrintStream(System.out, true, StandardCharsets.UTF_8));
+        System.setErr(new PrintStream(System.err, true, StandardCharsets.UTF_8));
+
         // Suppress internal Java logger messages from leaking to stderr (#142)
         Logger rootLogger = Logger.getLogger("");
         rootLogger.setLevel(Level.SEVERE);
