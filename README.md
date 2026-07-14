@@ -1,66 +1,56 @@
 # LinuxLingo
 
-This is a project template for a greenfield Java project. It's named after the Java mascot _Duke_. Given below are instructions on how to use it.
+LinuxLingo is a **command-line application for learning Linux commands** through an interactive shell simulator and a built-in quiz system. It is optimised for Computer Science students who want to build confidence with the Linux command line by typing real commands, seeing real output, and testing their knowledge with quizzes — all within a safe, in-memory virtual file system (VFS) that never touches your real files.
 
-## Setting up in Intellij
+## Features
 
-Prerequisites: JDK 17 (use the exact version), update Intellij to the most recent version.
+- **Shell Simulator** — Practice 35 Linux commands (`ls`, `cd`, `grep`, `chmod`, `find`, and more) in a Linux-like environment. Supports piping (`|`), redirection (`>`, `>>`, `<`), logical operators (`&&`, `||`, `;`), glob expansion, aliases, variable expansion, and command history.
+- **Exam System** — Test your knowledge with topic-based quizzes featuring multiple-choice, fill-in-the-blank, and practical (VFS-verified) questions.
+- **Safe Sandbox** — All file operations run on an in-memory virtual file system. No real files are ever created, modified, or deleted.
+- **Environment Persistence** — Save, load, and manage snapshots of your virtual file system across sessions.
 
-1. **Ensure Intellij JDK 17 is defined as an SDK**, as described [here](https://www.jetbrains.com/help/idea/sdk.html#set-up-jdk) -- this step is not needed if you have used JDK 17 in a previous Intellij project.
-1. **Import the project _as a Gradle project_**, as described [here](https://se-education.org/guides/tutorials/intellijImportGradleProject.html).
-1. **Verify the setup**: After the importing is complete, locate the `src/main/java/seedu/duke/Duke.java` file, right-click it, and choose `Run Duke.main()`. If the setup is correct, you should see something like the below:
+## Quick Start
+
+**Prerequisites:** Java 17 or above.
+
+1. Download the latest `LinuxLingo.jar` from the [releases page](https://github.com/AY2526S2-CS2113-T10-2/tp/releases).
+2. Open a terminal, `cd` into the folder containing the JAR, and run:
+
+   ```shell
+   java -jar LinuxLingo.jar
    ```
-   > Task :compileJava
-   > Task :processResources NO-SOURCE
-   > Task :classes
-   
-   > Task :Duke.main()
-   Hello from
-    ____        _        
-   |  _ \ _   _| | _____ 
-   | | | | | | | |/ / _ \
-   | |_| | |_| |   <  __/
-   |____/ \__,_|_|\_\___|
-   
-   What is your name?
-   ```
-   Type some word and press enter to let the execution proceed to the end.
 
-**Warning:** Keep the `src\main\java` folder as the root folder for Java files (i.e., don't rename those folders or move Java files to another folder outside of this folder path), as this is the default location some tools (e.g., Gradle) expect to find Java files.
+3. At the `linuxlingo>` prompt, type `help` to see available commands, or `shell` to enter the Shell Simulator.
 
-## Build automation using Gradle
+You can also run a single command without entering the shell:
 
-* This project uses Gradle for build automation and dependency management. It includes a basic build script as well (i.e. the `build.gradle` file).
-* If you are new to Gradle, refer to the [Gradle Tutorial at se-education.org/guides](https://se-education.org/guides/tutorials/gradle.html).
+```shell
+java -jar LinuxLingo.jar exec "echo hello"
+```
 
-## Testing
+## Building from Source
 
-### I/O redirection tests
+This project uses [Gradle](https://se-education.org/guides/tutorials/gradle.html) for build automation and dependency management (a wrapper is included — use `./gradlew`).
 
-* To run _I/O redirection_ tests (aka _Text UI tests_), navigate to the `text-ui-test` and run the `runtest(.bat/.sh)` script.
+```shell
+./gradlew build   # build the project
+./gradlew run     # run the application
+./gradlew test    # run the JUnit tests
+```
 
-### JUnit tests
+To run the I/O redirection (Text UI) tests, navigate to the `text-ui-test` folder and run the `runtest(.bat/.sh)` script.
 
-* A skeleton JUnit test (`src/test/java/seedu/duke/DukeTest.java`) is provided with this project template. 
-* If you are new to JUnit, refer to the [JUnit Tutorial at se-education.org/guides](https://se-education.org/guides/tutorials/junit.html).
-
-## Checkstyle
-
-* A sample CheckStyle rule configuration is provided in this project.
-* If you are new to Checkstyle, refer to the [Checkstyle Tutorial at se-education.org/guides](https://se-education.org/guides/tutorials/checkstyle.html).
-
-## CI using GitHub Actions
-
-The project uses [GitHub actions](https://github.com/features/actions) for CI. When you push a commit to this repo or PR against it, GitHub actions will run automatically to build and verify the code as updated by the commit/PR.
+Code style is enforced via [Checkstyle](https://se-education.org/guides/tutorials/checkstyle.html), and [GitHub Actions](https://github.com/features/actions) runs the build and tests automatically on every push and pull request.
 
 ## Documentation
 
-`/docs` folder contains a skeleton version of the project documentation.
+- [User Guide](docs/UserGuide.md) — Full command reference and usage instructions.
+- [Developer Guide](docs/DeveloperGuide.md) — Architecture, design decisions, and implementation details.
+- [About Us](docs/AboutUs.md) — Meet the team.
 
-Steps for publishing documentation to the public: 
-1. If you are using this project template for an individual project, go your fork on GitHub.<br>
-   If you are using this project template for a team project, go to the team fork on GitHub.
-1. Click on the `settings` tab.
-1. Scroll down to the `GitHub Pages` section.
-1. Set the `source` as `master branch /docs folder`.
-1. Optionally, use the `choose a theme` button to choose a theme for your documentation.
+## Acknowledgements
+
+- [AddressBook-Level3 (AB3)](https://se-education.org/addressbook-level3/) — Project structure and Developer Guide format.
+- [JLine 3](https://github.com/jline/jline3) — Tab-completion and command history in the interactive shell.
+- [Gradle Shadow Plugin](https://github.com/johnrengelman/shadow) — Building fat JARs.
+- [PlantUML](https://plantuml.com/) — UML diagram generation.
